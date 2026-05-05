@@ -1,0 +1,31 @@
+// ====================================================================
+// RACES.JS - extraído de app.js
+// ====================================================================
+
+const SUBRACES = {
+  aasimar: ['Protetor','Flagelo','Queda'],
+  dragonborn: ['Ácido (Preto/Cobre)','Relâmpago (Azul/Bronze)','Frio (Branco/Prata)','Fogo (Ouro/Vermelho/Latão)','Veneno (Verde/Cobra)','Força (Dourado/Âmbar)'],
+  dwarf: ['Anão da Colina','Anão da Montanha'],
+  elf: ['Elfo Alto','Elfo da Floresta','Drow'],
+  gnome: ['Gnomo da Floresta','Gnomo das Pedras'],
+  goliath: ['Descendência da Pedra','Descendência da Tempestade','Descendência do Fogo','Descendência do Gelo','Descendência da Colina','Descendência do Mar'],
+  halfling: ['Robusto','Pé-Leve'],
+  human: ['Humano Padrão'],
+  orc: ['Orc Padrão'],
+  tiefling: ['Abissal','Ctônico','Infernal']
+};
+
+const RACE_TRAITS = {
+  aasimar: '<div class="feature-item"><div class="feature-name">Cura Celestial</div><div class="feature-desc">Ação bonus: cura você ou aliado adjacente por 1d4 × Bônus de Proficiência PV.</div></div><div class="feature-item"><div class="feature-name">Revelação Celestial (Nível 3)</div><div class="feature-desc">Escolha uma forma: Asas Celestiais, Irradiância Interior ou Manto Necrôtico. Pode mudar a escolha a cada ativação.</div></div><div class="feature-item"><div class="feature-name">Resistência a Dano</div><div class="feature-desc">Resistência a dano Necrótico e Radiante.</div></div>',
+  dragonborn: '<div class="feature-item"><div class="feature-name">Sopro Dracônico</div><div class="feature-desc">Sopro em Cone ou Linha (escolha). Tipo de dano baseado na linhagem. Recarrega em Descanso Curto ou Longo.</div></div><div class="feature-item"><div class="feature-name">Resistência Dracônica</div><div class="feature-desc">Resistência ao tipo de dano da linhagem.</div></div><div class="feature-item"><div class="feature-name">Asas Dracônicas (Nível 5)</div><div class="feature-desc">Velocidade de voo igual ao deslocamento normal.</div></div>',
+  dwarf: '<div class="feature-item"><div class="feature-name">Tremorsense de Pedra</div><div class="feature-desc">Ação Bônus: detecta criaturas em pedra natural a 60ft.</div></div><div class="feature-item"><div class="feature-name">Resistência a Veneno</div><div class="feature-desc">Resistência a dano de Veneno; vantagem em TR contra Venenado.</div></div><div class="feature-item"><div class="feature-name">Tenacidade Anã</div><div class="feature-desc">PV máximo aumenta em +1 por nível.</div></div>',
+  elf: '<div class="feature-item"><div class="feature-name">Visão no Escuro (60ft)</div><div class="feature-desc">Enxerga em Escuridão como luz tênue e em luz tênue como luz plena.</div></div><div class="feature-item"><div class="feature-name">Ancestralidade Feérica</div><div class="feature-desc">Vantagem em TR contra Enfeitiçado; magia não pode adormecer você.</div></div><div class="feature-item"><div class="feature-name">Transe</div><div class="feature-desc">Descansa meditando por 4 horas ao invés de dormir 8.</div></div><div class="feature-item"><div class="feature-name">Linhagem Élfica</div><div class="feature-desc">Acesso a magias baseadas na linhagem (Alto, Floresta ou Drow).</div></div>',
+  gnome: '<div class="feature-item"><div class="feature-name">Visão no Escuro (60ft)</div><div class="feature-desc">Enxerga em escuridão.</div></div><div class="feature-item"><div class="feature-name">Astúcia Gnômica</div><div class="feature-desc">Vantagem em TR de INT, SAB e CAR contra magia.</div></div><div class="feature-item"><div class="feature-name">Linhagem Gnômica</div><div class="feature-desc">Magias específicas de acordo com a linhagem.</div></div>',
+  goliath: '<div class="feature-item"><div class="feature-name">Ancestralidade Gigante</div><div class="feature-desc">Escolha um tipo de gigante; ganha poder especial 1×/turno.</div></div><div class="feature-item"><div class="feature-name">Forma Grande</div><div class="feature-desc">Por 1 minuto, cresce para tamanho Grande (Ação Bônus).</div></div><div class="feature-item"><div class="feature-name">Corpulento</div><div class="feature-desc">Conta como criatura de tamanho Grande para carregar/empurrar.</div></div>',
+  halfling: '<div class="feature-item"><div class="feature-name">Sortudo</div><div class="feature-desc">Ao rolar 1 em d20 de ataque/TR/perícia, pode rerrolar o dado.</div></div><div class="feature-item"><div class="feature-name">Corajoso</div><div class="feature-desc">Vantagem em TR contra Amedrontado.</div></div><div class="feature-item"><div class="feature-name">Agilidade Halfling</div><div class="feature-desc">Pode se mover pelo espaço de criaturas maiores.</div></div>',
+  human: '<div class="feature-item"><div class="feature-name">Versátil</div><div class="feature-desc">Ganha talento de Origem no 1° nível.</div></div><div class="feature-item"><div class="feature-name">Habilidoso</div><div class="feature-desc">Proficiência em qualquer habilidade ou ferramenta adicional.</div></div>',
+  orc: '<div class="feature-item"><div class="feature-name">Ímpeto de Adrenalina</div><div class="feature-desc">Ação Bônus: realize Correr e ganhe PV Temporários = Bônus de Proficiência. Recarrega em Descanso Curto.</div></div><div class="feature-item"><div class="feature-name">Endurece</div><div class="feature-desc">1×/Descanso Longo: quando reduzido a 0 PV, fica em 1 PV.</div></div><div class="feature-item"><div class="feature-name">Visão no Escuro (120ft)</div><div class="feature-desc">Visão aprimorada no escuro.</div></div>',
+  tiefling: '<div class="feature-item"><div class="feature-name">Visão no Escuro (60ft)</div><div class="feature-desc">Enxerga em escuridão.</div></div><div class="feature-item"><div class="feature-name">Legado Infernal</div><div class="feature-desc">Thaumaturgia (truque). Magia de Nível 3 e 5 baseada na linhagem.</div></div><div class="feature-item"><div class="feature-name">Resistência Fiendish</div><div class="feature-desc">Resistência ao tipo de dano da linhagem (Fogo/Veneno/Necrótico).</div></div>',
+};
+
+const RACE_NAMES_PT = {aasimar:'Aasimar',dragonborn:'Draconato',dwarf:'Anão',elf:'Elfo',gnome:'Gnomo',goliath:'Golias',halfling:'Halfling',human:'Humano',orc:'Orc',tiefling:'Tiefling'};

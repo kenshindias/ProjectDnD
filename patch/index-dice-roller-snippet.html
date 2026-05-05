@@ -1,0 +1,46 @@
+<!-- ===== DICE ROLLER ===== -->
+<div id="dice-roller-panel">
+  <div class="dice-fab" onclick="toggleDicePanel()" id="dice-fab" title="Rolador de Dados">🎲</div>
+
+  <div class="dice-panel" id="dice-panel">
+    <div class="dice-panel-header">
+      <span>🎲 Rolador de Dados</span>
+      <button class="dice-close-btn" onclick="toggleDicePanel()" title="Fechar rolador">✕</button>
+    </div>
+
+    <div class="adv-dis-btns">
+      <button class="adv-btn" id="adv-btn" onclick="setRollMode('advantage')">⬆ Vantagem</button>
+      <button class="normal-btn active" id="normal-btn" onclick="setRollMode('normal')">Normal</button>
+      <button class="dis-btn" id="dis-btn" onclick="setRollMode('disadvantage')">⬇ Desvantagem</button>
+    </div>
+
+    <div class="dice-config">
+      <div class="dice-config-group">
+        <span class="dice-label">Qtd.</span>
+        <input class="dice-count-input" id="dice-count" type="number" value="1" min="1" max="20">
+      </div>
+
+      <div class="dice-config-separator">+</div>
+
+      <div class="dice-config-group">
+        <span class="dice-label">Mod.</span>
+        <input class="dice-mod-input" id="dice-modifier" type="number" value="0" placeholder="+0">
+      </div>
+    </div>
+
+    <div class="dice-grid">
+      <button class="die-btn" onclick="rollDie(4)">d4</button>
+      <button class="die-btn" onclick="rollDie(6)">d6</button>
+      <button class="die-btn" onclick="rollDie(8)">d8</button>
+      <button class="die-btn" onclick="rollDie(10)">d10</button>
+      <button class="die-btn" onclick="rollDie(12)">d12</button>
+      <button class="die-btn" onclick="rollDie(20)">d20</button>
+      <button class="die-btn" onclick="rollDie(100)">d100</button>
+      <button class="die-btn" onclick="rollCustom()">Custom</button>
+    </div>
+
+    <div class="dice-result-area" id="dice-results">
+      <div class="dice-empty-state">Clique em um dado para rolar...</div>
+    </div>
+  </div>
+</div>

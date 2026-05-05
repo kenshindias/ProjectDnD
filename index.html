@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Arcanum Codex — D&D 5e 2024</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&family=Uncial+Antiqua&family=IM+Fell+English:ital@0;1&family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <!-- TITLE SCREEN -->
+    <div id="title-screen">
+    <h1>⚔ Arcanum Codex ⚔</h1>
+    <p class="subtitle">Ficha de Personagem · D&D 5ª Edição 2024</p>
+    <div class="rune-divider">᛭ ᚢ ᚱ ᚨ ᚾ ᚢ ᛭</div>
+    <button class="btn-primary" onclick="enterApp()" style="font-size:1rem;padding:0.8rem 2.5rem;letter-spacing:0.1em;">
+        Abrir Codex
+    </button>
+    </div>
+
+    <!-- DRIVE STATUS -->
+    <div id="drive-status">
+    <div class="status-dot"></div>
+    <span id="drive-status-text">Salvando...</span>
+    </div>
+
+    <!-- MAIN APP -->
+    <div id="app">
+
+    <!-- TOP NAV -->
+    <nav id="top-nav">
+        <div class="brand">⚔ Arcanum Codex</div>
+        <div class="nav-chars" id="char-tabs"></div>
+        <button class="char-tab new-tab" onclick="newCharacter()" title="Novo Personagem">+</button>
+        <button class="drive-btn" onclick="saveAllToDrive()" id="save-btn">
+        <span>💾</span> Drive
+        </button>
+    </nav>
+
+    <!-- SECTION TABS -->
+    <div id="section-tabs">
+        <button class="section-tab active" onclick="showSection('main',this)">📜 Principal</button>
+        <button class="section-tab" onclick="showSection('combat',this)">⚔ Combate</button>
+        <button class="section-tab" onclick="showSection('spells',this)">✨ Magias</button>
+        <button class="section-tab" onclick="showSection('equipment',this)">🎒 Equipamento</button>
+        <button class="section-tab" onclick="showSection('features',this)">⭐ Habilidades</button>
+        <button class="section-tab" onclick="showSection('background',this)">📖 Histórico</button>
+        <button class="section-tab" onclick="showSection('notes',this)">📝 Anotações</button>
+    </div>
+
+    <!-- ==================== MAIN PAGE ==================== -->
+    <div id="page-main" class="page active">
+        <div class="grid-3" style="gap:1rem;">
+
+        <!-- LEFT COLUMN -->
+        <div>
+            <!-- Character Info -->
+            <div class="parchment panel" id="char-info-panel">
+            <div class="panel-title">Identidade do Personagem</div>
+            <div class="field-group">
+                <label class="field-label">Nome do Personagem</label>
+                <input class="field-input" id="char-name" placeholder="Nome heroico..." onchange="markDirty()">
+            </div>
+            <div class="grid-2" style="gap:0.6rem;">
+                <div class="field-group">
+                <label class="field-label">Classe</label>
+                <select class="field-select" id="char-class" onchange="onClassChange()">
+                    <option value="">— Escolha —</option>
+                    <option value="barbarian">Bárbaro</option>
+                    <option value="bard">Bardo</option>
+                    <option value="cleric">Clérigo</option>
+                    <option value="druid">Druida</option>
+                    <option value="fighter">Guerreiro</option>
+                    <option value="monk">Monge</option>
+                    <option value="paladin">Paladino</option>
+                    <option value="ranger">Patrulheiro</option>
+                    <option value="rogue">Ladino</option>
+                    <option value="sorcerer">Feiticeiro</option>
+                    <option value="warlock">Bruxo</option>
+                    <option value="wizard">Mago</option>
+                </select>
+                </div>
+                <div class="field-group">
+                <label class="field-label">Subclasse</label>
+                <select class="field-select" id="char-subclass" onchange="markDirty()">
+                    <option value="">— Escolha a Classe —</option>
+                </select>
+                </div>
+            </div>
+            <div class="grid-2" style="gap:0.6rem;">
+                <div class="field-group">
+                <label class="field-label">Espécie</label>
+                <select class="field-select" id="char-race" onchange="onRaceChange()">
+                    <option value="">— Escolha —</option>
+                    <option value="aasimar">Aasimar</option>
+                    <option value="dragonborn">Draconato</option>
+                    <option value="dwarf">Anão</option>
+                    <option value="elf">Elfo</option>
+                    <option value="gnome">Gnomo</option>
+                    <option value="goliath">Golias</option>
+                    <option value="halfling">Halfling</option>
+                    <option value="human">Humano</option>
+                    <option value="orc">Orc</option>
+                    <option value="tiefling">Tiefling</option>
+                </select>
+                </div>
+                <div class="field-group">
+                <label class="field-label">Linhagem/Variante</label>
+                <select class="field-select" id="char-subrace" onchange="markDirty()">
+                    <option value="">— Escolha a Espécie —</option>
+                </select>
+                </div>
+            </div>
+            <div class="grid-3" style="gap:0.6rem;">
+                <div class="field-group">
+                <label class="field-label">Nível</label>
+                <input class="field-input" id="char-level" type="number" min="1" max="20" value="1" onchange="onLevelChange()">
+                </div>
+                <div class="field-group">
+                <label class="field-label">Histórico</label>
+                <select class="field-select" id="char-background" onchange="markDirty()">
+                    <option value="">— Escolha —</option>
+                    <option>Acólito</option><option>Artesão</option><option>Artista</option>
+                    <option>Camponês</option><option>Criminoso</option><option>Eremita</option>
+                    <option>Estudioso</option><option>Forasteiro</option><option>Guarda</option>
+                    <option>Marinheiro</option><option>Mercador</option><option>Nobre</option>
+                    <option>Pária</option><option>Sábio</option><option>Soldado</option>
+                </select>
+                </div>
+                <div class="field-group">
+                <label class="field-label">Alinhamento</label>
+                <select class="field-select" id="char-alignment" onchange="markDirty()">
+                    <option value="">—</option>
+                    <option>Leal e Bom</option><option>Neutro e Bom</option><option>Caótico e Bom</option>
+                    <option>Leal e Neutro</option><option>Neutro</option><option>Caótico e Neutro</option>
+                    <option>Leal e Mau</option><option>Neutro e Mau</option><option>Caótico e Mau</option>
+                </select>
+                </div>
+            </div>
+            <div id="class-race-badges" style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.5rem;"></div>
+            </div>
+
+            <!-- Ability Scores -->
+            <div class="parchment panel">
+            <div class="panel-title">Atributos</div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;">
+                <div class="ability-block" id="str-block">
+                <div class="ability-label">FOR</div>
+                <div class="ability-score-box" onclick="rollAbility('STR','str')">
+                    <input class="ability-score" id="str-score" type="number" min="1" max="30" value="10" onchange="updateAll()">
+                    <div class="ability-modifier" id="str-mod">+0</div>
+                </div>
+                </div>
+                <div class="ability-block">
+                <div class="ability-label">DES</div>
+                <div class="ability-score-box" onclick="rollAbility('DEX','dex')">
+                    <input class="ability-score" id="dex-score" type="number" min="1" max="30" value="10" onchange="updateAll()">
+                    <div class="ability-modifier" id="dex-mod">+0</div>
+                </div>
+                </div>
+                <div class="ability-block">
+                <div class="ability-label">CON</div>
+                <div class="ability-score-box" onclick="rollAbility('CON','con')">
+                    <input class="ability-score" id="con-score" type="number" min="1" max="30" value="10" onchange="updateAll()">
+                    <div class="ability-modifier" id="con-mod">+0</div>
+                </div>
+                </div>
+                <div class="ability-block">
+                <div class="ability-label">INT</div>
+                <div class="ability-score-box" onclick="rollAbility('INT','int')">
+                    <input class="ability-score" id="int-score" type="number" min="1" max="30" value="10" onchange="updateAll()">
+                    <div class="ability-modifier" id="int-mod">+0</div>
+                </div>
+                </div>
+                <div class="ability-block">
+                <div class="ability-label">SAB</div>
+                <div class="ability-score-box" onclick="rollAbility('WIS','wis')">
+                    <input class="ability-score" id="wis-score" type="number" min="1" max="30" value="10" onchange="updateAll()">
+                    <div class="ability-modifier" id="wis-mod">+0</div>
+                </div>
+                </div>
+                <div class="ability-block">
+                <div class="ability-label">CAR</div>
+                <div class="ability-score-box" onclick="rollAbility('CAR','cha')">
+                    <input class="ability-score" id="cha-score" type="number" min="1" max="30" value="10" onchange="updateAll()">
+                    <div class="ability-modifier" id="cha-mod">+0</div>
+                </div>
+                </div>
+            </div>
+            </div>
+
+            <!-- Saving Throws -->
+            <div class="parchment panel">
+            <div class="panel-title">Testes de Resistência</div>
+            <div id="saving-throws-list"></div>
+            </div>
+
+            <!-- Passive & Senses -->
+            <div class="parchment panel">
+            <div class="panel-title">Sentidos & Percepção</div>
+            <div class="passive-box">
+                <div class="passive-value" id="passive-perception">10</div>
+                <div class="passive-label">Percepção Passiva</div>
+            </div>
+            <div class="field-group">
+                <label class="field-label">Outros Sentidos</label>
+                <textarea class="notes-area" id="senses-notes" rows="3" placeholder="Visão no escuro 60ft, Tremorsense..." onchange="markDirty()"></textarea>
+            </div>
+            <div class="field-group">
+                <label class="field-label">Proficiências</label>
+                <textarea class="notes-area" id="profs-notes" rows="4" placeholder="Idiomas, Ferramentas, Armaduras, Armas..." onchange="markDirty()"></textarea>
+            </div>
+            </div>
+        </div>
+
+        <!-- MIDDLE COLUMN -->
+        <div>
+            <!-- Portrait + Core Stats -->
+            <div class="parchment panel">
+            <div class="grid-2" style="gap:1rem;margin-bottom:1rem;">
+                <div class="portrait-area" onclick="uploadPortrait()" id="portrait-area">
+                <div class="portrait-placeholder" id="portrait-placeholder">
+                    <div class="portrait-icon">🧙</div>
+                    <div class="portrait-hint">Clique para<br>adicionar retrato</div>
+                </div>
+                <img id="portrait-img" style="display:none;">
+                </div>
+                <div style="display:flex;flex-direction:column;gap:0.8rem;">
+                <div style="text-align:center;">
+                    <div class="prof-bonus-display">
+                    <div class="prof-bonus-value" id="prof-bonus-display">+2</div>
+                    <div class="prof-bonus-label">Bônus de<br>Proficiência</div>
+                    </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:0.5rem;justify-content:center;">
+                    <div class="inspiration-gem" id="inspiration-gem" onclick="toggleInspiration()" title="Inspiração"></div>
+                    <div style="font-family:'Cinzel',serif;font-size:0.65rem;color:var(--blood);text-transform:uppercase;letter-spacing:0.1em;">Inspiração</div>
+                </div>
+                <div class="field-group">
+                    <label class="field-label">XP</label>
+                    <input class="field-input" id="char-xp" type="number" placeholder="0" onchange="markDirty()">
+                </div>
+                <div class="field-group">
+                    <label class="field-label">Próx. Nível</label>
+                    <div style="font-size:0.85rem;color:var(--ink-faded);font-style:italic;" id="next-level-xp">300 XP</div>
+                </div>
+                </div>
+            </div>
+
+            <!-- HP -->
+            <div class="hp-section">
+                <div class="panel-title" style="margin-bottom:0.6rem;">Pontos de Vida</div>
+                <div class="hp-inputs">
+                <div>
+                    <div class="hp-label">Atual</div>
+                    <input class="hp-input" id="hp-current" type="number" value="10" onchange="updateHpBar()">
+                </div>
+                <div class="hp-slash">/</div>
+                <div>
+                    <div class="hp-label">Máximo</div>
+                    <input class="hp-input" id="hp-max" type="number" value="10" onchange="updateHpBar()">
+                </div>
+                <div style="margin-left:auto;">
+                    <div class="hp-label">Temp</div>
+                    <input class="hp-input" id="hp-temp" type="number" placeholder="0" style="width:55px;font-size:1rem;">
+                </div>
+                </div>
+                <div class="hp-bar-container"><div class="hp-bar" id="hp-bar"></div></div>
+                <div style="display:flex;gap:0.5rem;margin-top:0.4rem;">
+                <button onclick="adjustHP(-1)" class="add-row-btn" style="margin:0;padding:0.25rem;width:auto;flex:1;">−1</button>
+                <button onclick="adjustHP(-5)" class="add-row-btn" style="margin:0;padding:0.25rem;width:auto;flex:1;">−5</button>
+                <input id="hp-delta" type="number" placeholder="±" style="width:55px;text-align:center;border:1px solid var(--parchment-darker);background:transparent;font-family:'Cinzel',serif;font-size:0.85rem;outline:none;border-radius:3px;padding:0.2rem;">
+                <button onclick="applyHpDelta()" class="btn-primary" style="padding:0.25rem 0.6rem;font-size:0.75rem;flex:1;">Aplicar</button>
+                <button onclick="adjustHP(5)" class="add-row-btn" style="margin:0;padding:0.25rem;width:auto;flex:1;">+5</button>
+                <button onclick="adjustHP(1)" class="add-row-btn" style="margin:0;padding:0.25rem;width:auto;flex:1;">+1</button>
+                </div>
+            </div>
+
+            <!-- Death Saves -->
+            <div style="padding:0.8rem 1.4rem;border-top:1px solid var(--parchment-darker);">
+                <div class="panel-title" style="margin-bottom:0.5rem;">Testes de Morte</div>
+                <div class="death-saves">
+                <div class="death-saves">
+                    <span style="font-size:0.75rem;color:var(--nature-green);font-family:'Cinzel',serif;margin-right:4px;">✓</span>
+                    <div class="save-dots" id="death-success"></div>
+                </div>
+                <div class="death-saves" style="margin-left:1rem;">
+                    <span style="font-size:0.75rem;color:var(--blood);font-family:'Cinzel',serif;margin-right:4px;">✗</span>
+                    <div class="save-dots" id="death-failure"></div>
+                </div>
+                <button onclick="resetDeathSaves()" class="btn-secondary" style="margin-left:auto;padding:0.2rem 0.6rem;font-size:0.7rem;">Reset</button>
+                </div>
+            </div>
+
+            <!-- Conditions -->
+            <div style="padding:0.8rem 1.4rem;border-top:1px solid var(--parchment-darker);">
+                <div class="panel-title" style="margin-bottom:0.5rem;">Condições</div>
+                <div id="conditions-area" style="display:flex;flex-wrap:wrap;gap:4px;"></div>
+            </div>
+            </div>
+
+            <!-- Class Resource Panel -->
+            <div class="parchment panel" id="class-resource-panel">
+            <div class="panel-title" id="class-resource-title">Recursos da Classe</div>
+            <div id="class-resource-content">
+                <div style="text-align:center;color:var(--ink-faded);font-style:italic;font-size:0.9rem;padding:1rem;">
+                Escolha uma classe para ver seus recursos
+                </div>
+            </div>
+            </div>
+
+            <!-- Race Traits Panel -->
+            <div class="parchment panel" id="race-traits-panel">
+            <div class="panel-title" id="race-traits-title">Traços Raciais</div>
+            <div id="race-traits-content">
+                <div style="text-align:center;color:var(--ink-faded);font-style:italic;font-size:0.9rem;padding:1rem;">
+                Escolha uma espécie para ver seus traços
+                </div>
+            </div>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div>
+            <!-- AC / Initiative / Speed -->
+            <div class="parchment panel">
+            <div class="panel-title">Estatísticas de Combate</div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;">
+                <div class="combat-stat">
+                <div class="stat-diamond">
+                    <div class="stat-diamond-inner">
+                    <input class="combat-stat-value" id="char-ac" type="number" value="10" style="font-size:1.4rem;" onchange="markDirty()">
+                    </div>
+                </div>
+                <span class="combat-stat-label">CA</span>
+                </div>
+                <div class="combat-stat">
+                <div class="stat-diamond">
+                    <div class="stat-diamond-inner">
+                    <span class="combat-stat-value" id="initiative-display" style="font-size:1.4rem;">+0</span>
+                    </div>
+                </div>
+                <span class="combat-stat-label">Iniciativa</span>
+                </div>
+                <div class="combat-stat">
+                <div class="stat-diamond">
+                    <div class="stat-diamond-inner">
+                    <input class="combat-stat-value" id="char-speed" type="number" value="30" style="font-size:1.2rem;" onchange="markDirty()">
+                    </div>
+                </div>
+                <span class="combat-stat-label">Deslocamento</span>
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:0.5rem;margin-top:0.5rem;">
+                <div class="field-group">
+                <label class="field-label">Hit Dice</label>
+                <div style="display:flex;gap:0.4rem;align-items:center;">
+                    <input class="field-input" id="hit-dice-total" type="number" placeholder="10" style="width:40px;">
+                    <span style="color:var(--ink-faded);font-family:'Cinzel',serif;">d</span>
+                    <select class="field-select" id="hit-dice-type" style="width:60px;">
+                    <option value="6">6</option><option value="8">8</option><option value="10">10</option><option value="12">12</option>
+                    </select>
+                </div>
+                </div>
+                <div class="field-group">
+                <label class="field-label">Hit Dice Gastos</label>
+                <input class="field-input" id="hit-dice-used" type="number" placeholder="0">
+                </div>
+            </div>
+            </div>
+
+            <!-- Skills -->
+            <div class="parchment panel">
+            <div class="panel-title">Perícias</div>
+            <div id="skills-list"></div>
+            </div>
+
+            <!-- Spell DC -->
+            <div class="parchment panel" id="spell-stats-panel" style="display:none;">
+            <div class="panel-title">Estatísticas de Magia</div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;text-align:center;">
+                <div>
+                <div class="combat-stat-value" id="spell-ability-display" style="font-size:1.2rem;">—</div>
+                <div class="combat-stat-label">Atributo</div>
+                </div>
+                <div>
+                <div class="combat-stat-value" id="spell-dc-display" style="font-size:1.2rem;">—</div>
+                <div class="combat-stat-label">CD de Magia</div>
+                </div>
+                <div>
+                <div class="combat-stat-value" id="spell-atk-display" style="font-size:1.2rem;">—</div>
+                <div class="combat-stat-label">Bônus Atq Mag</div>
+                </div>
+            </div>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    <!-- ==================== COMBAT PAGE ==================== -->
+    <div id="page-combat" class="page">
+        <div class="grid-2">
+        <!-- Weapons -->
+        <div class="col-span-2">
+            <div class="parchment panel">
+            <div class="panel-title">Armas & Ataques</div>
+            <div style="display:grid;grid-template-columns:1fr 80px 90px 90px 80px 40px;gap:6px;padding:4px;border-bottom:1px solid var(--parchment-darker);margin-bottom:4px;">
+                <div style="font-family:'Cinzel',serif;font-size:0.65rem;color:var(--blood);letter-spacing:0.1em;text-transform:uppercase;">Nome</div>
+                <div style="font-family:'Cinzel',serif;font-size:0.65rem;color:var(--blood);letter-spacing:0.1em;text-transform:uppercase;">Bônus Atq</div>
+                <div style="font-family:'Cinzel',serif;font-size:0.65rem;color:var(--blood);letter-spacing:0.1em;text-transform:uppercase;">Dano</div>
+                <div style="font-family:'Cinzel',serif;font-size:0.65rem;color:var(--blood);letter-spacing:0.1em;text-transform:uppercase;">Tipo</div>
+                <div style="font-family:'Cinzel',serif;font-size:0.65rem;color:var(--blood);letter-spacing:0.1em;text-transform:uppercase;">Rolar</div>
+                <div></div>
+            </div>
+            <div id="weapons-list"></div>
+            <button class="add-row-btn" onclick="addWeapon()">+ Adicionar Arma</button>
+            </div>
+        </div>
+
+        <!-- Armor & Combat Notes -->
+        <div>
+            <div class="parchment panel">
+            <div class="panel-title">Armadura & Defesa</div>
+            <div class="field-group">
+                <label class="field-label">Armadura Equipada</label>
+                <input class="field-input" id="armor-name" placeholder="Armadura de Couro, Cota de Malha..." onchange="markDirty()">
+            </div>
+            <div class="grid-2">
+                <div class="field-group">
+                <label class="field-label">Escudo</label>
+                <select class="field-select" id="shield-equip" onchange="markDirty()">
+                    <option value="none">Nenhum</option>
+                    <option value="shield">Escudo (+2 CA)</option>
+                    <option value="shield-plus">Escudo Mágico (+3 CA)</option>
+                </select>
+                </div>
+                <div class="field-group">
+                <label class="field-label">CA Total</label>
+                <input class="field-input" id="ac-total-display" readonly style="color:var(--ink-faded);">
+                </div>
+            </div>
+            <div class="field-group">
+                <label class="field-label">Resistências & Imunidades</label>
+                <textarea class="notes-area" id="resistances-notes" rows="4" placeholder="Resistência a dano de fogo, imunidade a veneno..." onchange="markDirty()"></textarea>
+            </div>
+            </div>
+        </div>
+
+        <div>
+            <div class="parchment panel">
+            <div class="panel-title">Notas de Combate</div>
+            <textarea class="notes-area" id="combat-notes" rows="12" placeholder="Táticas, habilidades especiais, manobras..." onchange="markDirty()"></textarea>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    <!-- ==================== SPELLS PAGE ==================== -->
+    <div id="page-spells" class="page">
+        <div class="grid-3">
+        <!-- Spellcasting Info -->
+        <div>
+            <div class="parchment panel">
+            <div class="panel-title">Conjuração</div>
+            <div class="field-group">
+                <label class="field-label">Classe Conjuradora</label>
+                <input class="field-input" id="spell-class-name" placeholder="Mago, Clérigo..." onchange="markDirty()">
+            </div>
+            <div class="field-group">
+                <label class="field-label">Atributo de Conjuração</label>
+                <select class="field-select" id="spell-ability" onchange="updateSpellStats()">
+                <option value="">—</option>
+                <option value="int">Inteligência</option>
+                <option value="wis">Sabedoria</option>
+                <option value="cha">Carisma</option>
+                </select>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:0.5rem;margin-top:0.8rem;text-align:center;">
+                <div class="passive-box">
+                <div class="passive-value" id="spell-dc-big">—</div>
+                <div class="passive-label">CD de Magia</div>
+                </div>
+                <div class="passive-box">
+                <div class="passive-value" id="spell-atk-big">—</div>
+                <div class="passive-label">Bônus de Ataque</div>
+                </div>
+            </div>
+            <div class="field-group" style="margin-top:0.8rem;">
+                <label class="field-label">Magias Preparadas</label>
+                <div style="display:flex;gap:4px;align-items:center;">
+                <input class="field-input" id="spells-prepared-current" type="number" placeholder="0" style="width:50px;">
+                <span style="color:var(--ink-faded);">/</span>
+                <input class="field-input" id="spells-prepared-max" type="number" placeholder="Max" style="width:50px;">
+                </div>
+            </div>
+            <div class="field-group">
+                <label class="field-label">Notas de Magia</label>
+                <textarea class="notes-area" id="spell-notes" rows="5" placeholder="Foco de conjuração, componentes especiais..." onchange="markDirty()"></textarea>
+            </div>
+            </div>
+        </div>
+
+        <!-- Spells List -->
+        <div class="col-span-2">
+            <div class="parchment panel">
+            <div class="panel-title">Grimório de Magias</div>
+            <div style="display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap;">
+                <button class="add-row-btn" onclick="addSpell(0)" style="width:auto;padding:0.3rem 0.8rem;margin:0;">+ Truque</button>
+                <button class="add-row-btn" onclick="addSpell(1)" style="width:auto;padding:0.3rem 0.8rem;margin:0;">+ Nível 1</button>
+                <button class="add-row-btn" onclick="addSpell(2)" style="width:auto;padding:0.3rem 0.8rem;margin:0;">+ Nível 2</button>
+                <button class="add-row-btn" onclick="addSpell(3)" style="width:auto;padding:0.3rem 0.8rem;margin:0;">+ Nível 3</button>
+                <button class="add-row-btn" onclick="addSpell(4)" style="width:auto;padding:0.3rem 0.8rem;margin:0;">+ Nível 4</button>
+                <button class="add-row-btn" onclick="addSpell(5)" style="width:auto;padding:0.3rem 0.8rem;margin:0;">+ Nível 5</button>
+                <button class="add-row-btn" onclick="addSpell(6)" style="width:auto;padding:0.3rem 0.8rem;margin:0;">+ N.6-9</button>
+            </div>
+            <!-- Spell Slots -->
+            <div id="spell-slots-section" style="margin-bottom:1rem;">
+                <div class="panel-title" style="margin-bottom:0.5rem;">Espaços de Magia</div>
+                <div id="spell-slots-grid" style="display:grid;grid-template-columns:repeat(9,1fr);gap:8px;text-align:center;"></div>
+            </div>
+            <!-- Spells by level -->
+            <div id="spells-by-level"></div>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    <!-- ==================== EQUIPMENT PAGE ==================== -->
+    <div id="page-equipment" class="page">
+        <div class="grid-2">
+        <div>
+            <div class="parchment panel">
+            <div class="panel-title">Inventário</div>
+            <div style="display:grid;grid-template-columns:1fr 50px 80px 40px;gap:6px;padding:4px;border-bottom:1px solid var(--parchment-darker);margin-bottom:4px;">
+                <div style="font-family:'Cinzel',serif;font-size:0.65rem;color:var(--blood);letter-spacing:0.1em;text-transform:uppercase;">Item</div>
+                <div style="font-family:'Cinzel',serif;font-size:0.65rem;color:var(--blood);letter-spacing:0.1em;text-transform:uppercase;">Qtd</div>
+                <div style="font-family:'Cinzel',serif;font-size:0.65rem;color:var(--blood);letter-spacing:0.1em;text-transform:uppercase;">Peso</div>
+                <div></div>
+            </div>
+            <div id="items-list"></div>
+            <button class="add-row-btn" onclick="addItem()">+ Adicionar Item</button>
+            <div style="margin-top:0.8rem;display:flex;align-items:center;gap:0.5rem;">
+                <div style="font-family:'Cinzel',serif;font-size:0.7rem;color:var(--ink-faded);">Carga Total:</div>
+                <span id="total-weight" style="font-family:'Cinzel',serif;font-size:0.9rem;color:var(--ink);">0 lb</span>
+                <span style="color:var(--ink-faded);font-size:0.7rem;">/ Capacidade:</span>
+                <span id="carry-capacity" style="font-family:'Cinzel',serif;font-size:0.9rem;color:var(--ink-faded);">— lb</span>
+            </div>
+            </div>
+
+            <!-- Currency -->
+            <div class="parchment panel">
+            <div class="panel-title">Tesouro</div>
+            <div class="currency-row">
+                <div class="coin">
+                <span class="coin-label coin-cp">PC</span>
+                <input class="coin-input" id="coin-cp" type="number" placeholder="0" onchange="markDirty()">
+                </div>
+                <div class="coin">
+                <span class="coin-label coin-sp">PP</span>
+                <input class="coin-input" id="coin-sp" type="number" placeholder="0" onchange="markDirty()">
+                </div>
+                <div class="coin">
+                <span class="coin-label coin-ep">PE</span>
+                <input class="coin-input" id="coin-ep" type="number" placeholder="0" onchange="markDirty()">
+                </div>
+                <div class="coin">
+                <span class="coin-label coin-gp">PO</span>
+                <input class="coin-input" id="coin-gp" type="number" placeholder="0" onchange="markDirty()">
+                </div>
+                <div class="coin">
+                <span class="coin-label coin-pp">PP (Platina)</span>
+                <input class="coin-input" id="coin-pp" type="number" placeholder="0" onchange="markDirty()">
+                </div>
+            </div>
+            <div style="margin-top:0.8rem;font-size:0.85rem;color:var(--ink-faded);font-style:italic;text-align:right;" id="total-wealth"></div>
+            </div>
+        </div>
+
+        <div>
+            <!-- Magic Items -->
+            <div class="parchment panel">
+            <div class="panel-title">Itens Mágicos</div>
+            <textarea class="notes-area" id="magic-items-notes" rows="12" placeholder="Espada +1 (attuned)&#10;Anel de Proteção (+1 CA, +1 TR)&#10;Manto do Élfico..." onchange="markDirty()"></textarea>
+            </div>
+
+            <!-- Atunement -->
+            <div class="parchment panel">
+            <div class="panel-title">Sintonização (máx. 3)</div>
+            <div style="display:flex;flex-direction:column;gap:0.5rem;">
+                <input class="field-input" id="attune-1" placeholder="Item sintonizado 1..." onchange="markDirty()">
+                <input class="field-input" id="attune-2" placeholder="Item sintonizado 2..." onchange="markDirty()">
+                <input class="field-input" id="attune-3" placeholder="Item sintonizado 3..." onchange="markDirty()">
+            </div>
+            </div>
+
+            <!-- Treasure Notes -->
+            <div class="parchment panel">
+            <div class="panel-title">Outros Tesouros & Notas</div>
+            <textarea class="notes-area" id="treasure-notes" rows="8" placeholder="Joias, relíquias, manuscritos, mapas..." onchange="markDirty()"></textarea>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    <!-- ==================== FEATURES PAGE ==================== -->
+    <div id="page-features" class="page">
+        <div class="grid-2">
+        <div>
+            <div class="parchment panel">
+            <div class="panel-title">Habilidades de Classe & Subclasse</div>
+            <div id="class-features-list"></div>
+            <button class="add-row-btn" onclick="addFeature('class')">+ Adicionar Habilidade</button>
+            </div>
+            <div class="parchment panel">
+            <div class="panel-title">Talentos (Feats)</div>
+            <div id="feats-list"></div>
+            <button class="add-row-btn" onclick="addFeat()">+ Adicionar Talento</button>
+            </div>
+        </div>
+        <div>
+            <div class="parchment panel">
+            <div class="panel-title">Habilidades Raciais</div>
+            <div id="race-features-list"></div>
+            <button class="add-row-btn" onclick="addFeature('race')">+ Adicionar Traço</button>
+            </div>
+            <div class="parchment panel">
+            <div class="panel-title">Outras Habilidades</div>
+            <div id="other-features-list"></div>
+            <button class="add-row-btn" onclick="addFeature('other')">+ Adicionar Habilidade</button>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    <!-- ==================== BACKGROUND PAGE ==================== -->
+    <div id="page-background" class="page">
+        <div class="grid-3">
+        <div>
+            <div class="parchment panel">
+            <div class="panel-title">Traços de Personalidade</div>
+            <div class="trait-box">
+                <div class="trait-label">Traços de Personalidade</div>
+                <textarea class="trait-text" id="personality-traits" placeholder="O que define meu comportamento?" onchange="markDirty()"></textarea>
+            </div>
+            <div class="trait-box">
+                <div class="trait-label">Ideais</div>
+                <textarea class="trait-text" id="ideals" placeholder="Princípios pelos quais vivo..." onchange="markDirty()"></textarea>
+            </div>
+            <div class="trait-box">
+                <div class="trait-label">Vínculos</div>
+                <textarea class="trait-text" id="bonds" placeholder="O que me conecta ao mundo..." onchange="markDirty()"></textarea>
+            </div>
+            <div class="trait-box">
+                <div class="trait-label">Fraquezas</div>
+                <textarea class="trait-text" id="flaws" placeholder="Meus defeitos e fraquezas..." onchange="markDirty()"></textarea>
+            </div>
+            </div>
+        </div>
+        <div>
+            <div class="parchment panel">
+            <div class="panel-title">Aparência Física</div>
+            <div class="grid-2">
+                <div class="field-group"><label class="field-label">Idade</label><input class="field-input" id="char-age" onchange="markDirty()"></div>
+                <div class="field-group"><label class="field-label">Altura</label><input class="field-input" id="char-height" onchange="markDirty()"></div>
+                <div class="field-group"><label class="field-label">Peso</label><input class="field-input" id="char-weight" onchange="markDirty()"></div>
+                <div class="field-group"><label class="field-label">Olhos</label><input class="field-input" id="char-eyes" onchange="markDirty()"></div>
+                <div class="field-group"><label class="field-label">Cabelo</label><input class="field-input" id="char-hair" onchange="markDirty()"></div>
+                <div class="field-group"><label class="field-label">Pele</label><input class="field-input" id="char-skin" onchange="markDirty()"></div>
+            </div>
+            <div class="field-group">
+                <label class="field-label">Marcas Especiais</label>
+                <textarea class="notes-area" id="char-marks" rows="3" placeholder="Cicatrizes, tatuagens, marcas de nascença..." onchange="markDirty()"></textarea>
+            </div>
+            <div class="field-group" style="margin-top:0.5rem;">
+                <label class="field-label">Aliados & Organizações</label>
+                <textarea class="notes-area" id="allies-notes" rows="5" placeholder="Guilds, facções, camaradas de armas..." onchange="markDirty()"></textarea>
+            </div>
+            </div>
+        </div>
+        <div>
+            <div class="parchment panel">
+            <div class="panel-title">História do Personagem</div>
+            <textarea class="notes-area" id="char-backstory" style="min-height:300px;" placeholder="A saga começa aqui..." onchange="markDirty()"></textarea>
+            </div>
+            <div class="parchment panel">
+            <div class="panel-title">Divindade & Fé</div>
+            <div class="field-group">
+                <label class="field-label">Divindade Venerada</label>
+                <input class="field-input" id="char-deity" placeholder="Nome da divindade..." onchange="markDirty()">
+            </div>
+            <textarea class="notes-area" id="faith-notes" rows="4" placeholder="Crenças, rituais, dogmas..." onchange="markDirty()"></textarea>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    <!-- ==================== NOTES PAGE ==================== -->
+    <div id="page-notes" class="page">
+        <div class="grid-2">
+        <div>
+            <div class="parchment panel">
+            <div class="panel-title">Diário de Aventura</div>
+            <textarea class="notes-area" id="adventure-log" style="min-height:400px;" placeholder="Sessão 1 — O início da jornada...&#10;&#10;Anotações das aventuras, sessão por sessão..." onchange="markDirty()"></textarea>
+            </div>
+        </div>
+        <div>
+            <div class="parchment panel">
+            <div class="panel-title">Mapa Mental & Conexões</div>
+            <textarea class="notes-area" id="connections-notes" style="min-height:200px;" placeholder="NPCs importantes, localidades, facções, enredos..." onchange="markDirty()"></textarea>
+            </div>
+            <div class="parchment panel">
+            <div class="panel-title">Objetivos & Ganchos</div>
+            <textarea class="notes-area" id="goals-notes" style="min-height:150px;" placeholder="Objetivos de curto/longo prazo, missões pendentes..." onchange="markDirty()"></textarea>
+            </div>
+            <div class="parchment panel">
+            <div class="panel-title">Notas Diversas</div>
+            <textarea class="notes-area" id="misc-notes" style="min-height:150px;" placeholder="Qualquer coisa importante..." onchange="markDirty()"></textarea>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    </div><!-- end #app -->
+
+    <!-- ===== DICE ROLLER ===== -->
+    <div id="dice-roller-panel">
+    <div class="dice-fab" onclick="toggleDicePanel()" id="dice-fab" title="Rolador de Dados">🎲</div>
+
+    <div class="dice-panel" id="dice-panel">
+        <div class="dice-panel-header">
+        <span>🎲 Rolador de Dados</span>
+
+        <div class="dice-header-actions">
+            <button class="dice-close-btn" onclick="clearRollHistory()" title="Limpar histórico">🧹</button>
+            <button class="dice-close-btn" onclick="toggleDicePanel()" title="Fechar rolador">✕</button>
+        </div>
+        </div>
+
+        <div class="adv-dis-btns">
+        <button class="adv-btn" id="adv-btn" onclick="setRollMode('advantage')">⬆ Vantagem</button>
+        <button class="normal-btn active" id="normal-btn" onclick="setRollMode('normal')">Normal</button>
+        <button class="dis-btn" id="dis-btn" onclick="setRollMode('disadvantage')">⬇ Desvantagem</button>
+        </div>
+
+        <div class="dice-config">
+        <div class="dice-config-group">
+            <span class="dice-label">Qtd.</span>
+            <input class="dice-count-input" id="dice-count" type="number" value="1" min="1" max="20">
+        </div>
+
+        <div class="dice-config-separator">+</div>
+
+        <div class="dice-config-group">
+            <span class="dice-label">Mod.</span>
+            <input class="dice-mod-input" id="dice-modifier" type="number" value="0" placeholder="+0">
+        </div>
+        </div>
+
+        <div class="dice-grid">
+        <button class="die-btn" onclick="rollDie(4)">d4</button>
+        <button class="die-btn" onclick="rollDie(6)">d6</button>
+        <button class="die-btn" onclick="rollDie(8)">d8</button>
+        <button class="die-btn" onclick="rollDie(10)">d10</button>
+        <button class="die-btn" onclick="rollDie(12)">d12</button>
+        <button class="die-btn" onclick="rollDie(20)">d20</button>
+        <button class="die-btn" onclick="rollDie(100)">d100</button>
+        <button class="die-btn" onclick="rollCustom()">Custom</button>
+        </div>
+
+        <div class="dice-result-area" id="dice-results">
+        <div class="dice-empty-state">Clique em um dado para rolar...</div>
+        </div>
+    </div>
+    </div>
+
+
+    <!-- ===== NEW CHARACTER MODAL ===== -->
+    <div class="modal-overlay" id="new-char-modal">
+    <div class="modal-box">
+        <div class="modal-title">✦ Criar Novo Personagem ✦</div>
+        <div class="field-group">
+        <label class="field-label">Nome do Personagem</label>
+        <input class="field-input" id="new-char-name" placeholder="Nome do herói...">
+        </div>
+        <div style="display:flex;gap:0.8rem;margin-top:1.2rem;">
+        <button class="btn-primary" onclick="confirmNewChar()">Criar Personagem</button>
+        <button class="btn-secondary" onclick="closeModal('new-char-modal')">Cancelar</button>
+        </div>
+    </div>
+    </div>
+
+    <input type="file" id="portrait-upload" accept="image/*" style="display:none;" onchange="handlePortraitUpload(event)">
+
+  <!-- Aqui ficará o conteúdo visual do app -->
+
+  <script src="js/data/constants.js"></script>
+  <script src="js/data/classes.js"></script>
+  <script src="js/data/races.js"></script>
+
+  <script src="js/storage.js"></script>
+  <script src="js/dice.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

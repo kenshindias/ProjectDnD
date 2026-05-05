@@ -1,0 +1,23 @@
+/* =========================================================
+   ETAPA 2S — ROLADOR COMPLETO COM BOTÃO DE LIMPAR HISTÓRICO
+   Cole no FINAL do css/style.css.
+   ========================================================= */
+
+.dice-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.dice-header-actions .dice-close-btn {
+  min-width: 28px;
+  min-height: 28px;
+}
+
+.dice-panel-header {
+  gap: 0.75rem;
+}
+
+.dice-panel-header > span {
+  flex: 1;
+}
