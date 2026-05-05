@@ -58,52 +58,100 @@ function updateWealthTotal() {
 }
 
 // ====================================================================
-// JSON BACKUP BUTTONS
+// TOP ACTION BUTTONS
 // ====================================================================
+function createTopActionButton({ id, icon, label, title, onClick }) {
+  let btn = document.getElementById(id);
+
+  if (!btn) {
+    btn = document.createElement('button');
+    btn.id = id;
+    btn.type = 'button';
+  }
+
+  btn.className = 'drive-btn top-action-btn';
+  btn.innerHTML = `<span>${icon}</span> ${label}`;
+  btn.title = title;
+  btn.onclick = onClick;
+
+  return btn;
+}
+
 function setupBackupButtons() {
   const nav = document.getElementById('top-nav');
-  if(!nav || document.getElementById('export-json-btn')) return;
+  if (!nav) return;
 
-  const duplicateBtn = document.createElement('button');
-  duplicateBtn.className = 'drive-btn';
-  duplicateBtn.id = 'duplicate-char-btn';
-  duplicateBtn.type = 'button';
-  duplicateBtn.innerHTML = '<span>📄</span> Duplicar';
-  duplicateBtn.title = 'Duplicar o personagem atual';
-  duplicateBtn.onclick = () => {
-    if(typeof duplicateCurrentCharacter === 'function') duplicateCurrentCharacter();
+  const saveBtn = document.getElementById('save-btn') || createTopActionButton({
+    id: 'save-btn',
+    icon: '💾',
+    label: 'Salvar Local',
+    title: 'Salvar agora no navegador',
+    onClick: () => {}
+  });
+
+  saveBtn.className = 'drive-btn top-action-btn primary-action';
+  saveBtn.type = 'button';
+  saveBtn.innerHTML = '<span>💾</span> Salvar Local';
+  saveBtn.title = 'Salvar agora no navegador/localStorage';
+  saveBtn.onclick = () => {
+    if (typeof saveLocalNow === 'function') saveLocalNow();
+    else if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
   };
 
-  const exportBtn = document.createElement('button');
-  exportBtn.className = 'drive-btn';
-  exportBtn.id = 'export-json-btn';
-  exportBtn.type = 'button';
-  exportBtn.innerHTML = '<span>⬇️</span> Exportar JSON';
-  exportBtn.title = 'Exportar JSON: todos os personagens ou apenas o atual';
-  exportBtn.onclick = () => {
-    if(typeof exportCharactersToJSON === 'function') exportCharactersToJSON();
-  };
+  const duplicateBtn = createTopActionButton({
+    id: 'duplicate-char-btn',
+    icon: '📄',
+    label: 'Duplicar',
+    title: 'Duplicar o personagem atual',
+    onClick: () => {
+      if (typeof duplicateCurrentCharacter === 'function') duplicateCurrentCharacter();
+    }
+  });
 
-  const importBtn = document.createElement('button');
-  importBtn.className = 'drive-btn';
-  importBtn.id = 'import-json-btn';
-  importBtn.type = 'button';
-  importBtn.innerHTML = '<span>⬆️</span> Importar JSON';
-  importBtn.title = 'Importar JSON: substituir, adicionar, mesclar ou escolher personagem';
-  importBtn.onclick = () => {
-    if(typeof importCharactersFromJSON === 'function') importCharactersFromJSON();
-  };
+  const deleteBtn = createTopActionButton({
+    id: 'delete-char-btn',
+    icon: '🗑️',
+    label: 'Excluir',
+    title: 'Excluir o personagem atual',
+    onClick: () => {
+      if (typeof deleteCurrentCharacter === 'function') deleteCurrentCharacter();
+    }
+  });
 
-  const saveBtn = document.getElementById('save-btn');
-  if(saveBtn && saveBtn.parentNode) {
-    saveBtn.parentNode.insertBefore(duplicateBtn, saveBtn);
-    saveBtn.parentNode.insertBefore(exportBtn, saveBtn);
-    saveBtn.parentNode.insertBefore(importBtn, saveBtn);
-  } else {
-    nav.appendChild(duplicateBtn);
-    nav.appendChild(exportBtn);
-    nav.appendChild(importBtn);
-  }
+  const exportBtn = createTopActionButton({
+    id: 'export-json-btn',
+    icon: '⬇️',
+    label: 'Exportar',
+    title: 'Exportar JSON: todos os personagens ou apenas o atual',
+    onClick: () => {
+      if (typeof exportCharactersToJSON === 'function') exportCharactersToJSON();
+    }
+  });
+
+  const importBtn = createTopActionButton({
+    id: 'import-json-btn',
+    icon: '⬆️',
+    label: 'Importar',
+    title: 'Importar JSON: substituir, adicionar, mesclar ou escolher personagem',
+    onClick: () => {
+      if (typeof importCharactersFromJSON === 'function') importCharactersFromJSON();
+    }
+  });
+
+  const actionButtons = [saveBtn, duplicateBtn, deleteBtn, exportBtn, importBtn];
+
+  actionButtons.forEach(btn => {
+    if (btn.parentNode !== nav) nav.appendChild(btn);
+  });
+
+  const referenceNode = nav.querySelector('.nav-chars')?.nextSibling || null;
+  actionButtons.forEach(btn => nav.insertBefore(btn, referenceNode));
+
+  // Remove qualquer rótulo antigo/confuso de Drive caso tenha ficado no HTML.
+  const legacyDriveText = Array.from(nav.querySelectorAll('button')).find(btn => {
+    return btn.id !== 'save-btn' && btn.textContent.trim().toLowerCase() === 'drive';
+  });
+  if (legacyDriveText) legacyDriveText.remove();
 }
 
 function setupAbilityScoreClickFix() {
@@ -151,7 +199,8 @@ if (!window.__ARCANUM_UI_SHORTCUTS_BOUND__) {
   document.addEventListener('keydown', e => {
     if (e.ctrlKey && e.key === 's') {
       e.preventDefault();
-      if (typeof saveAllToDrive === 'function') saveAllToDrive();
+      if (typeof saveLocalNow === 'function') saveLocalNow();
+      else if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
     }
 
     if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'e') {
@@ -177,4 +226,5 @@ window.handlePortraitUpload = handlePortraitUpload;
 window.updateWealthTotal = updateWealthTotal;
 window.initUI = initUI;
 window.setupBackupButtons = setupBackupButtons;
+window.createTopActionButton = createTopActionButton;
 window.setupAbilityScoreClickFix = setupAbilityScoreClickFix;

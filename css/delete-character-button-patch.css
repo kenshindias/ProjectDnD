@@ -1,0 +1,16 @@
+/* =========================================================
+   ETAPA 2U — BOTÃO EXCLUIR FICHA
+   Cole no FINAL do css/style.css.
+   ========================================================= */
+
+#delete-char-btn {
+  border-color: rgba(204, 85, 85, 0.55);
+  color: #cc7777;
+  background: rgba(204, 85, 85, 0.08);
+}
+
+#delete-char-btn:hover {
+  border-color: rgba(204, 85, 85, 0.9);
+  color: #ff9999;
+  background: rgba(204, 85, 85, 0.16);
+}

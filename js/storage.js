@@ -21,6 +21,7 @@ let deathFailures = [false,false,false];
 let activeConditions = [];
 let rollHistory = [];
 let isApplyingData = false;
+let isDeletingCharacter = false;
 
 function getMod(score) { return Math.floor(((parseInt(score) || 10) - 10) / 2); }
 function getModStr(score) { const m=getMod(score); return (m>=0?'+':'')+m; }
@@ -208,7 +209,15 @@ function applyData(data) {
 }
 
 function saveCurrentChar() {
-  if(characters[currentCharIndex]) characters[currentCharIndex].data=collectData();
+  if (!characters[currentCharIndex]) return;
+
+  const data = collectData();
+  characters[currentCharIndex].data = data;
+
+  // Mantém o nome da aba sincronizado com o campo da ficha.
+  if (data['char-name']) {
+    characters[currentCharIndex].name = data['char-name'];
+  }
 }
 
 function loadChar(char) {
@@ -217,14 +226,25 @@ function loadChar(char) {
 }
 
 function markDirty() {
-  if(isApplyingData) return;
+  if (typeof isApplyingData !== 'undefined' && isApplyingData) return;
+  if (typeof isDeletingCharacter !== 'undefined' && isDeletingCharacter) return;
+
   clearTimeout(saveTimeout);
-  saveTimeout=setTimeout(()=>{ saveToLocalStorage(); }, 1500);
+  saveTimeout = setTimeout(() => { saveToLocalStorage(); }, 1500);
 }
 
 function saveToLocalStorage() {
   saveCurrentChar();
   try { localStorage.setItem('arcanum_codex_v2', JSON.stringify(characters)); } catch(e) {}
+}
+
+function persistCharactersOnly() {
+  try { localStorage.setItem('arcanum_codex_v2', JSON.stringify(characters)); } catch(e) {}
+}
+
+function saveLocalNow() {
+  saveToLocalStorage();
+  showDriveStatus('saved', 'Salvo localmente ✓');
 }
 
 function loadFromLocalStorage() {
@@ -306,13 +326,114 @@ function getBackupFileName(exportType = 'all', charName = '') {
   return `arcanum-codex-backup-todos_${fileStamp}.json`;
 }
 
-function exportAllCharactersToJSON() {
-  saveCurrentChar();
+function createBlankCharacter() {
+  const id = Date.now() + Math.floor(Math.random() * 1000);
+  const name = 'Novo Personagem';
+  return {
+    id,
+    name,
+    data: {
+      'char-name': name,
+      'char-level': '1',
+      'str-score': '10',
+      'dex-score': '10',
+      'con-score': '10',
+      'int-score': '10',
+      'wis-score': '10',
+      'cha-score': '10',
+      'hp-current': '10',
+      'hp-max': '10',
+      'char-ac': '10',
+      'char-speed': '30'
+    }
+  };
+}
 
-  const payload = createJSONBackupPayload(characters, 'all');
-  downloadJSONPayload(payload, getBackupFileName('all'));
+function getCurrentCharacterIndexSafe() {
+  if (!Array.isArray(characters) || characters.length === 0) return -1;
 
-  showDriveStatus('saved', 'Backup de todos exportado ✓');
+  // 1) Preferir o índice da aba visualmente ativa, pois ela representa a ficha aberta no topo.
+  const activeTab = document.querySelector('#char-tabs .char-tab.active');
+  if (activeTab) {
+    const tabs = Array.from(document.querySelectorAll('#char-tabs .char-tab:not(.new-tab)'));
+    const visualIndex = tabs.indexOf(activeTab);
+    if (visualIndex >= 0 && characters[visualIndex]) return visualIndex;
+  }
+
+  // 2) Tentar localizar pelo ID da ficha atualmente carregada, caso exista.
+  const currentData = collectData ? collectData() : {};
+  if (currentData && currentData.id) {
+    const idIndex = characters.findIndex(ch => ch && ch.id === currentData.id);
+    if (idIndex >= 0) return idIndex;
+  }
+
+  // 3) Fallback pelo índice global.
+  if (Number.isInteger(currentCharIndex) && currentCharIndex >= 0 && currentCharIndex < characters.length) {
+    return currentCharIndex;
+  }
+
+  return 0;
+}
+
+function deleteCurrentCharacter() {
+  if (!Array.isArray(characters) || characters.length === 0) {
+    showDriveStatus('error', 'Nenhuma ficha para excluir.');
+    return;
+  }
+
+  const deleteIndex = getCurrentCharacterIndexSafe();
+  if (deleteIndex < 0 || !characters[deleteIndex]) {
+    showDriveStatus('error', 'Não foi possível identificar a ficha atual.');
+    return;
+  }
+
+  const current = characters[deleteIndex] || {};
+  const name = current.name || current.data?.['char-name'] || document.getElementById('char-name')?.value || 'Personagem sem nome';
+
+  const confirmed = confirm(
+    `Excluir a ficha "${name}"?\n\n` +
+    'Essa ação remove a ficha do navegador/localStorage. ' +
+    'Se quiser guardar uma cópia, exporte o JSON antes de excluir.'
+  );
+
+  if (!confirmed) return;
+
+  clearTimeout(saveTimeout);
+  saveTimeout = null;
+  isDeletingCharacter = true;
+  isApplyingData = true;
+
+  try {
+    // Remove a ficha do array, sem coletar os dados atuais da tela.
+    characters = characters.filter((_, idx) => idx !== deleteIndex);
+
+    if (characters.length === 0) {
+      characters.push(createBlankCharacter());
+      currentCharIndex = 0;
+    } else {
+      // Depois de excluir a ficha 2, por exemplo, abrimos a ficha que ocupou a posição dela.
+      currentCharIndex = Math.max(0, Math.min(deleteIndex, characters.length - 1));
+    }
+
+    // Salva imediatamente o array já corrigido.
+    persistCharactersOnly();
+
+    // MUITO IMPORTANTE:
+    // Use loadChar(), não applyData() direto.
+    // loadChar() chama clearSheet() antes de applyData(), impedindo que campos
+    // da ficha excluída permaneçam na tela e sejam salvos por cima da próxima.
+    loadChar(characters[currentCharIndex]);
+
+    renderCharTabs();
+    persistCharactersOnly();
+
+    showDriveStatus('saved', 'Ficha excluída ✓');
+  } finally {
+    isApplyingData = false;
+    isDeletingCharacter = false;
+    clearTimeout(saveTimeout);
+    saveTimeout = null;
+  }
 }
 
 function exportCurrentCharacterToJSON() {
@@ -572,64 +693,24 @@ window.exportAllCharactersToJSON = exportAllCharactersToJSON;
 window.exportCurrentCharacterToJSON = exportCurrentCharacterToJSON;
 window.importCharactersFromJSON = importCharactersFromJSON;
 window.handleJSONImport = handleJSONImport;
+window.saveLocalNow = saveLocalNow;
+window.saveToLocalStorage = saveToLocalStorage;
+window.persistCharactersOnly = persistCharactersOnly;
 
 
 // ====================================================================
-// GOOGLE DRIVE SAVE/LOAD
+// LOCAL SAVE COMPATIBILITY
 // ====================================================================
+// O projeto agora usa localStorage + JSON. Mantemos estes nomes antigos
+// para compatibilidade com qualquer onclick/atalho que ainda exista no HTML.
 async function saveAllToDrive() {
-  showDriveStatus('saving','Salvando no Drive...');
-  saveCurrentChar();
-  const content = JSON.stringify(characters, null, 2);
-  const mcp_url = 'https://drivemcp.googleapis.com/mcp/v1';
-
-  try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        mcp_servers: [{type:'url',url:mcp_url,name:'google-drive'}],
-        messages: [{role:'user',content:`Save the following D&D character sheet data to a file called "arcanum_codex_characters.json" in Google Drive. If the file exists, overwrite it. The data is:\n\n${content}\n\nRespond only with "SAVED" when done.`}]
-      })
-    });
-    const data = await response.json();
-    const text = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
-    if(text.includes('SAVED') || text.toLowerCase().includes('save')) {
-      showDriveStatus('saved','Salvo no Drive! ✓');
-    } else { showDriveStatus('saved','Salvo localmente ✓'); }
-  } catch(e) {
-    showDriveStatus('saved','Salvo localmente ✓');
-  }
+  saveLocalNow();
 }
 
 async function loadFromDrive() {
-  showDriveStatus('saving','Carregando do Drive...');
-  try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 8000,
-        mcp_servers: [{type:'url',url:'https://drivemcp.googleapis.com/mcp/v1',name:'google-drive'}],
-        messages: [{role:'user',content:'Find and return the COMPLETE raw content of the file "arcanum_codex_characters.json" in Google Drive. Return ONLY the JSON content, nothing else.'}]
-      })
-    });
-    const data = await response.json();
-    const text = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
-    const jsonMatch = text.match(/\[[\s\S]*\]/);
-    if(jsonMatch) {
-      const loaded = JSON.parse(jsonMatch[0]);
-      characters=loaded;
-      currentCharIndex=0;
-      loadChar(characters[0]);
-      renderCharTabs();
-      showDriveStatus('saved','Carregado do Drive! ✓');
-    } else { showDriveStatus('error','Arquivo não encontrado'); }
-  } catch(e) { showDriveStatus('error','Erro ao carregar'); }
+  showDriveStatus('error', 'Drive desativado. Use Exportar/Importar JSON.');
 }
+
 
 function showDriveStatus(type, msg) {
   const el=document.getElementById('drive-status');
@@ -639,3 +720,7 @@ function showDriveStatus(type, msg) {
   clearTimeout(window.driveStatusTimer);
   window.driveStatusTimer=setTimeout(()=>el.className='',type==='error'?4000:2500);
 }
+
+window.deleteCurrentCharacter = deleteCurrentCharacter;
+window.getCurrentCharacterIndexSafe = getCurrentCharacterIndexSafe;
+window.createBlankCharacter = createBlankCharacter;

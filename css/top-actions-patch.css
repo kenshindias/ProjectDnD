@@ -1,0 +1,57 @@
+/* =========================================================
+   ETAPA 2T — TOPO ORGANIZADO: SALVAR, DUPLICAR, EXPORTAR, IMPORTAR
+   Cole no FINAL do css/style.css.
+   ========================================================= */
+
+#top-nav {
+  flex-wrap: nowrap;
+}
+
+.top-action-btn {
+  white-space: nowrap;
+  min-height: 32px;
+}
+
+.primary-action {
+  background: rgba(93, 170, 93, 0.14);
+  border-color: rgba(93, 170, 93, 0.55);
+  color: #6fbd6f;
+}
+
+.primary-action:hover {
+  background: rgba(93, 170, 93, 0.22);
+}
+
+@media (max-width: 900px) {
+  #top-nav {
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0 0.75rem;
+  }
+
+  #top-nav .brand {
+    font-size: 0.95rem;
+  }
+
+  .top-action-btn {
+    padding: 0.32rem 0.55rem;
+    font-size: 0.65rem;
+  }
+}
+
+@media (max-width: 680px) {
+  #top-nav {
+    flex-wrap: wrap;
+    padding-bottom: 0.5rem;
+  }
+
+  .nav-chars {
+    order: 10;
+    flex-basis: 100%;
+  }
+
+  .top-action-btn {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}
