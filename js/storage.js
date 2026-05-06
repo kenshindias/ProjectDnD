@@ -56,7 +56,8 @@ function getCharacterFilterState() {
   return window.characterFilters || {
     search: '',
     campaign: '',
-    status: ''
+    status: '',
+    sort: 'manual'
   };
 }
 
@@ -79,15 +80,96 @@ function characterMatchesFilters(char, index) {
   return true;
 }
 
+function getCharacterSortValue(char, index, key) {
+  const data = char?.data || {};
+
+  if (key === 'name') return getCharacterDisplayName(char, index).toLowerCase();
+  if (key === 'campaign') return String(data['char-campaign'] || '').toLowerCase();
+  if (key === 'status') return String(data['char-status'] || '').toLowerCase();
+  if (key === 'class') return String(data['char-class'] || '').toLowerCase();
+  if (key === 'level') return parseInt(data['char-level'] || '0') || 0;
+
+  return index;
+}
+
+function sortVisibleCharacters(entries) {
+  const filters = getCharacterFilterState();
+  const sort = String(filters.sort || 'manual');
+
+  if (sort === 'manual') return entries;
+
+  const sorted = [...entries];
+
+  sorted.sort((a, b) => {
+    if (sort === 'name-desc') {
+      return String(getCharacterSortValue(b.char, b.index, 'name')).localeCompare(
+        String(getCharacterSortValue(a.char, a.index, 'name')),
+        'pt-BR'
+      );
+    }
+
+    if (sort === 'name-asc') {
+      return String(getCharacterSortValue(a.char, a.index, 'name')).localeCompare(
+        String(getCharacterSortValue(b.char, b.index, 'name')),
+        'pt-BR'
+      );
+    }
+
+    if (sort === 'campaign') {
+      return String(getCharacterSortValue(a.char, a.index, 'campaign')).localeCompare(
+        String(getCharacterSortValue(b.char, b.index, 'campaign')),
+        'pt-BR'
+      ) || String(getCharacterSortValue(a.char, a.index, 'name')).localeCompare(
+        String(getCharacterSortValue(b.char, b.index, 'name')),
+        'pt-BR'
+      );
+    }
+
+    if (sort === 'status') {
+      return String(getCharacterSortValue(a.char, a.index, 'status')).localeCompare(
+        String(getCharacterSortValue(b.char, b.index, 'status')),
+        'pt-BR'
+      ) || String(getCharacterSortValue(a.char, a.index, 'name')).localeCompare(
+        String(getCharacterSortValue(b.char, b.index, 'name')),
+        'pt-BR'
+      );
+    }
+
+    if (sort === 'class') {
+      return String(getCharacterSortValue(a.char, a.index, 'class')).localeCompare(
+        String(getCharacterSortValue(b.char, b.index, 'class')),
+        'pt-BR'
+      ) || String(getCharacterSortValue(a.char, a.index, 'name')).localeCompare(
+        String(getCharacterSortValue(b.char, b.index, 'name')),
+        'pt-BR'
+      );
+    }
+
+    if (sort === 'level-desc') {
+      return getCharacterSortValue(b.char, b.index, 'level') - getCharacterSortValue(a.char, a.index, 'level');
+    }
+
+    if (sort === 'level-asc') {
+      return getCharacterSortValue(a.char, a.index, 'level') - getCharacterSortValue(b.char, b.index, 'level');
+    }
+
+    return a.index - b.index;
+  });
+
+  return sorted;
+}
+
 function renderCharTabs() {
   const el=document.getElementById('char-tabs');
   if(!el) return;
 
   el.innerHTML='';
 
-  const visibleCharacters = characters
-    .map((char, index) => ({ char, index }))
-    .filter(({ char, index }) => characterMatchesFilters(char, index));
+  const visibleCharacters = sortVisibleCharacters(
+    characters
+      .map((char, index) => ({ char, index }))
+      .filter(({ char, index }) => characterMatchesFilters(char, index))
+  );
 
   if (visibleCharacters.length === 0) {
     const empty = document.createElement('div');
@@ -104,7 +186,9 @@ function renderCharTabs() {
     btn.textContent=getCharacterDisplayName(c, i);
     btn.title = [
       c?.data?.['char-campaign'] ? `Campanha: ${c.data['char-campaign']}` : '',
-      c?.data?.['char-status'] ? `Status: ${c.data['char-status']}` : ''
+      c?.data?.['char-status'] ? `Status: ${c.data['char-status']}` : '',
+      c?.data?.['char-class'] ? `Classe: ${c.data['char-class']}` : '',
+      c?.data?.['char-level'] ? `Nível: ${c.data['char-level']}` : ''
     ].filter(Boolean).join(' • ');
     btn.onclick=()=>switchChar(i);
     el.appendChild(btn);
@@ -116,6 +200,7 @@ function switchChar(idx) {
   currentCharIndex=idx;
   loadChar(characters[idx]);
   renderCharTabs();
+  if (typeof updateArchiveButtonLabel === 'function') updateArchiveButtonLabel();
 }
 
 function duplicateCurrentCharacter() {
@@ -424,6 +509,41 @@ function getCurrentCharacterIndexSafe() {
   }
 
   return 0;
+}
+
+function toggleArchiveCurrentCharacter() {
+  if (!Array.isArray(characters) || characters.length === 0) {
+    showDriveStatus('error', 'Nenhuma ficha para arquivar.');
+    return;
+  }
+
+  saveCurrentChar();
+
+  const idx = getCurrentCharacterIndexSafe();
+  if (idx < 0 || !characters[idx]) {
+    showDriveStatus('error', 'Não foi possível identificar a ficha atual.');
+    return;
+  }
+
+  currentCharIndex = idx;
+
+  const char = characters[idx];
+  if (!char.data) char.data = {};
+
+  const currentStatus = char.data['char-status'] || document.getElementById('char-status')?.value || 'Ativo';
+  const nextStatus = currentStatus === 'Arquivado' ? 'Ativo' : 'Arquivado';
+
+  char.data['char-status'] = nextStatus;
+
+  const statusEl = document.getElementById('char-status');
+  if (statusEl) statusEl.value = nextStatus;
+
+  persistCharactersOnly();
+  renderCharTabs();
+
+  if (typeof updateArchiveButtonLabel === 'function') updateArchiveButtonLabel();
+
+  showDriveStatus('saved', nextStatus === 'Arquivado' ? 'Ficha arquivada ✓' : 'Ficha reativada ✓');
 }
 
 function deleteCurrentCharacter() {
@@ -786,9 +906,12 @@ function showDriveStatus(type, msg) {
   window.driveStatusTimer=setTimeout(()=>el.className='',type==='error'?4000:2500);
 }
 
+window.toggleArchiveCurrentCharacter = toggleArchiveCurrentCharacter;
 window.deleteCurrentCharacter = deleteCurrentCharacter;
 window.getCurrentCharacterIndexSafe = getCurrentCharacterIndexSafe;
 window.createBlankCharacter = createBlankCharacter;
 
 window.characterMatchesFilters = characterMatchesFilters;
 window.getCharacterFilterState = getCharacterFilterState;
+window.sortVisibleCharacters = sortVisibleCharacters;
+window.getCharacterSortValue = getCharacterSortValue;

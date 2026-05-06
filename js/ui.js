@@ -108,6 +108,16 @@ function setupBackupButtons() {
     }
   });
 
+  const archiveBtn = createTopActionButton({
+    id: 'archive-char-btn',
+    icon: '📦',
+    label: 'Arquivar',
+    title: 'Arquivar ou reativar a ficha atual',
+    onClick: () => {
+      if (typeof toggleArchiveCurrentCharacter === 'function') toggleArchiveCurrentCharacter();
+    }
+  });
+
   const deleteBtn = createTopActionButton({
     id: 'delete-char-btn',
     icon: '🗑️',
@@ -148,7 +158,7 @@ function setupBackupButtons() {
     }
   });
 
-  const actionButtons = [saveBtn, duplicateBtn, deleteBtn, exportBtn, importBtn, printBtn];
+  const actionButtons = [saveBtn, duplicateBtn, archiveBtn, deleteBtn, exportBtn, importBtn, printBtn];
 
   actionButtons.forEach(btn => {
     if (btn.parentNode !== nav) nav.appendChild(btn);
@@ -162,6 +172,52 @@ function setupBackupButtons() {
     return btn.id !== 'save-btn' && btn.textContent.trim().toLowerCase() === 'drive';
   });
   if (legacyDriveText) legacyDriveText.remove();
+}
+
+// ====================================================================
+// ARCHIVE / REACTIVATE
+// ====================================================================
+function setupArchiveButtonStyles() {
+  if (document.getElementById('arcanum-archive-button-styles')) return;
+
+  const style = document.createElement('style');
+  style.id = 'arcanum-archive-button-styles';
+  style.textContent = `
+    #archive-char-btn {
+      border-color: rgba(166, 132, 54, 0.65);
+      color: var(--gold);
+      background: rgba(201,162,39,0.08);
+    }
+
+    #archive-char-btn:hover {
+      border-color: var(--gold);
+      background: rgba(201,162,39,0.18);
+    }
+
+    #archive-char-btn.is-archived {
+      border-color: rgba(93, 170, 93, 0.55);
+      color: #7fcf7f;
+      background: rgba(93, 170, 93, 0.10);
+    }
+
+    #archive-char-btn.is-archived:hover {
+      background: rgba(93, 170, 93, 0.20);
+    }
+  `;
+
+  document.head.appendChild(style);
+}
+
+function updateArchiveButtonLabel() {
+  const btn = document.getElementById('archive-char-btn');
+  if (!btn) return;
+
+  const status = document.getElementById('char-status')?.value || '';
+  const isArchived = status === 'Arquivado';
+
+  btn.classList.toggle('is-archived', isArchived);
+  btn.innerHTML = isArchived ? '<span>♻️</span> Reativar' : '<span>📦</span> Arquivar';
+  btn.title = isArchived ? 'Reativar esta ficha' : 'Arquivar esta ficha';
 }
 
 // ====================================================================
@@ -212,14 +268,124 @@ function setupPrintStyles() {
       }
 
       .page {
-        display: none !important;
         padding: 0 !important;
         max-width: none !important;
         margin: 0 !important;
       }
 
-      .page.active {
+      body.print-current .page {
+        display: none !important;
+      }
+
+      body.print-current .page.active {
         display: block !important;
+      }
+
+      body.print-complete .page {
+        display: block !important;
+        break-after: page;
+        page-break-after: always;
+      }
+
+      body.print-complete .page:last-child {
+        break-after: auto;
+        page-break-after: auto;
+      }
+
+      body.print-summary #app,
+      body.print-summary .page,
+      body.print-summary #section-tabs {
+        display: none !important;
+      }
+
+      body.print-summary #print-summary-sheet {
+        display: block !important;
+      }
+
+      #print-summary-sheet {
+        display: none;
+      }
+
+      .print-summary-page {
+        font-family: Georgia, 'Times New Roman', serif;
+        color: #000;
+      }
+
+      .print-summary-header {
+        border-bottom: 2px solid #000;
+        padding-bottom: 8px;
+        margin-bottom: 12px;
+      }
+
+      .print-summary-title {
+        font-size: 24px;
+        font-weight: 700;
+        margin: 0;
+      }
+
+      .print-summary-subtitle {
+        font-size: 12px;
+        margin-top: 4px;
+      }
+
+      .print-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .print-summary-card {
+        border: 1px solid #999;
+        padding: 8px;
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      .print-summary-card h2 {
+        font-size: 13px;
+        margin: 0 0 6px;
+        text-transform: uppercase;
+        border-bottom: 1px solid #ccc;
+        padding-bottom: 3px;
+      }
+
+      .print-summary-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        font-size: 11px;
+        border-bottom: 1px dotted #ddd;
+        padding: 2px 0;
+      }
+
+      .print-summary-row strong {
+        font-weight: 700;
+      }
+
+      .print-summary-abilities {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 5px;
+      }
+
+      .print-ability-box {
+        border: 1px solid #999;
+        text-align: center;
+        padding: 5px 2px;
+      }
+
+      .print-ability-box .label {
+        font-size: 9px;
+        font-weight: 700;
+      }
+
+      .print-ability-box .score {
+        font-size: 16px;
+        font-weight: 700;
+      }
+
+      .print-ability-box .mod {
+        font-size: 12px;
       }
 
       .parchment,
@@ -297,17 +463,190 @@ function setupPrintStyles() {
   document.head.appendChild(style);
 }
 
+function getPrintValue(id, fallback = '') {
+  const el = document.getElementById(id);
+  if (!el) return fallback;
+
+  if ('value' in el) return el.value || fallback;
+
+  return el.textContent?.trim() || fallback;
+}
+
+function getPrintModifier(attr) {
+  const el = document.getElementById(`${attr}-mod`);
+  return el?.textContent?.trim() || '+0';
+}
+
+function getSelectedText(id, fallback = '') {
+  const el = document.getElementById(id);
+  if (!el) return fallback;
+
+  if (el.tagName === 'SELECT') {
+    return el.options[el.selectedIndex]?.textContent || fallback;
+  }
+
+  return el.value || fallback;
+}
+
+function buildPrintSummarySheet() {
+  let sheet = document.getElementById('print-summary-sheet');
+
+  if (!sheet) {
+    sheet = document.createElement('section');
+    sheet.id = 'print-summary-sheet';
+    document.body.appendChild(sheet);
+  }
+
+  const name = getPrintValue('char-name', 'Personagem sem nome');
+  const cls = getSelectedText('char-class', '—');
+  const subclass = getSelectedText('char-subclass', '');
+  const race = getSelectedText('char-race', '—');
+  const subrace = getSelectedText('char-subrace', '');
+  const level = getPrintValue('char-level', '1');
+  const campaign = getPrintValue('char-campaign', '—');
+  const status = getSelectedText('char-status', '—');
+  const dm = getPrintValue('char-dm', '—');
+  const party = getPrintValue('char-party', '—');
+
+  const hp = `${getPrintValue('hp-current', '0')} / ${getPrintValue('hp-max', '0')}`;
+  const ac = getPrintValue('char-ac', '10');
+  const initiative = document.getElementById('initiative-display')?.textContent?.trim() || '+0';
+  const speed = getPrintValue('char-speed', '30');
+  const pb = document.getElementById('prof-bonus-display')?.textContent?.trim() || '+2';
+  const passive = document.getElementById('passive-perception')?.textContent?.trim() || '10';
+
+  const abilities = [
+    ['FOR', 'str'], ['DES', 'dex'], ['CON', 'con'],
+    ['INT', 'int'], ['SAB', 'wis'], ['CAR', 'cha']
+  ];
+
+  const abilityHTML = abilities.map(([label, attr]) => `
+    <div class="print-ability-box">
+      <div class="label">${label}</div>
+      <div class="score">${getPrintValue(`${attr}-score`, '10')}</div>
+      <div class="mod">${getPrintModifier(attr)}</div>
+    </div>
+  `).join('');
+
+  const activeConditions = Array.from(document.querySelectorAll('#conditions-area .condition-chip.active'))
+    .map(chip => chip.textContent.trim())
+    .join(', ') || 'Nenhuma';
+
+  const weaponRows = Array.isArray(window.weapons || weapons)
+    ? (window.weapons || weapons).slice(0, 6).map(w => `
+      <div class="print-summary-row">
+        <span>${w.name || 'Arma'}</span>
+        <strong>${w.atkBonus || '—'} / ${w.damage || '—'} ${w.dmgType || ''}</strong>
+      </div>
+    `).join('')
+    : '';
+
+  const notes = getPrintValue('combat-notes', '') || getPrintValue('misc-notes', '') || '—';
+
+  sheet.innerHTML = `
+    <div class="print-summary-page">
+      <div class="print-summary-header">
+        <h1 class="print-summary-title">${name}</h1>
+        <div class="print-summary-subtitle">
+          ${cls}${subclass ? ` — ${subclass}` : ''} • ${race}${subrace ? ` — ${subrace}` : ''} • Nível ${level}
+        </div>
+      </div>
+
+      <div class="print-summary-grid">
+        <div class="print-summary-card">
+          <h2>Identidade</h2>
+          <div class="print-summary-row"><span>Campanha</span><strong>${campaign}</strong></div>
+          <div class="print-summary-row"><span>Status</span><strong>${status}</strong></div>
+          <div class="print-summary-row"><span>Mestre</span><strong>${dm}</strong></div>
+          <div class="print-summary-row"><span>Grupo</span><strong>${party}</strong></div>
+        </div>
+
+        <div class="print-summary-card">
+          <h2>Combate</h2>
+          <div class="print-summary-row"><span>PV</span><strong>${hp}</strong></div>
+          <div class="print-summary-row"><span>CA</span><strong>${ac}</strong></div>
+          <div class="print-summary-row"><span>Iniciativa</span><strong>${initiative}</strong></div>
+          <div class="print-summary-row"><span>Deslocamento</span><strong>${speed}</strong></div>
+          <div class="print-summary-row"><span>Proficiência</span><strong>${pb}</strong></div>
+          <div class="print-summary-row"><span>Percepção Passiva</span><strong>${passive}</strong></div>
+        </div>
+
+        <div class="print-summary-card" style="grid-column: span 2;">
+          <h2>Atributos</h2>
+          <div class="print-summary-abilities">${abilityHTML}</div>
+        </div>
+
+        <div class="print-summary-card">
+          <h2>Condições</h2>
+          <div class="print-summary-row"><span>Ativas</span><strong>${activeConditions}</strong></div>
+        </div>
+
+        <div class="print-summary-card">
+          <h2>Armas principais</h2>
+          ${weaponRows || '<div class="print-summary-row"><span>Nenhuma arma registrada</span><strong>—</strong></div>'}
+        </div>
+
+        <div class="print-summary-card" style="grid-column: span 2;">
+          <h2>Notas rápidas</h2>
+          <div style="font-size:11px;white-space:pre-wrap;">${notes}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function clearPrintMode() {
+  document.body.classList.remove('print-current', 'print-summary', 'print-complete');
+}
+
 function printCurrentSheet() {
   if (typeof saveLocalNow === 'function') saveLocalNow();
   else if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
 
   setupPrintStyles();
 
+  const answer = prompt(
+    'O que você quer imprimir?\\n\\n' +
+    '1 = Aba atual\\n' +
+    '2 = Ficha resumida\\n' +
+    '3 = Ficha completa\\n\\n' +
+    'Digite 1, 2 ou 3:',
+    '1'
+  );
+
+  if (answer === null) return;
+
+  const selected = String(answer).trim();
+
+  clearPrintMode();
+
+  if (selected === '1') {
+    document.body.classList.add('print-current');
+  } else if (selected === '2') {
+    buildPrintSummarySheet();
+    document.body.classList.add('print-summary');
+  } else if (selected === '3') {
+    document.body.classList.add('print-complete');
+  } else {
+    alert('Opção de impressão inválida.');
+    return;
+  }
+
   const currentName = document.getElementById('char-name')?.value || 'Ficha';
   document.title = `Arcanum Codex — ${currentName}`;
 
-  window.print();
+  const cleanup = () => {
+    clearPrintMode();
+    window.removeEventListener('afterprint', cleanup);
+  };
+
+  window.addEventListener('afterprint', cleanup);
+
+  setTimeout(() => {
+    window.print();
+  }, 50);
 }
+
 
 // ====================================================================
 // CHARACTER FILTERS
@@ -315,8 +654,43 @@ function printCurrentSheet() {
 window.characterFilters = window.characterFilters || {
   search: '',
   campaign: '',
-  status: ''
+  status: '',
+  sort: 'manual'
 };
+
+function setupCharacterFilterSortStyles() {
+  if (document.getElementById('arcanum-character-sort-styles')) return;
+
+  const style = document.createElement('style');
+  style.id = 'arcanum-character-sort-styles';
+  style.textContent = `
+    #character-filter-bar {
+      grid-template-columns: minmax(160px, 1.4fr) minmax(140px, 1fr) minmax(120px, 0.8fr) minmax(145px, 0.9fr) auto;
+    }
+
+    @media (max-width: 1080px) {
+      #character-filter-bar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      #clear-character-filters-btn {
+        grid-column: span 2;
+      }
+    }
+
+    @media (max-width: 560px) {
+      #character-filter-bar {
+        grid-template-columns: 1fr;
+      }
+
+      #clear-character-filters-btn {
+        grid-column: auto;
+      }
+    }
+  `;
+
+  document.head.appendChild(style);
+}
 
 function setupCharacterFilters() {
   const topNav = document.getElementById('top-nav');
@@ -350,6 +724,20 @@ function setupCharacterFilters() {
         </select>
       </div>
 
+      <div class="filter-group">
+        <label>Ordenar</label>
+        <select id="filter-character-sort">
+          <option value="manual">Manual</option>
+          <option value="name-asc">Nome A-Z</option>
+          <option value="name-desc">Nome Z-A</option>
+          <option value="campaign">Campanha</option>
+          <option value="status">Status</option>
+          <option value="level-desc">Nível maior</option>
+          <option value="level-asc">Nível menor</option>
+          <option value="class">Classe</option>
+        </select>
+      </div>
+
       <button id="clear-character-filters-btn" type="button" title="Limpar filtros">Limpar</button>
     `;
 
@@ -359,13 +747,15 @@ function setupCharacterFilters() {
   const searchInput = document.getElementById('filter-character-search');
   const campaignInput = document.getElementById('filter-character-campaign');
   const statusSelect = document.getElementById('filter-character-status');
+  const sortSelect = document.getElementById('filter-character-sort');
   const clearBtn = document.getElementById('clear-character-filters-btn');
 
   const applyFilters = () => {
     window.characterFilters = {
       search: searchInput?.value || '',
       campaign: campaignInput?.value || '',
-      status: statusSelect?.value || ''
+      status: statusSelect?.value || '',
+      sort: sortSelect?.value || 'manual'
     };
 
     if (typeof renderCharTabs === 'function') renderCharTabs();
@@ -374,16 +764,19 @@ function setupCharacterFilters() {
   searchInput?.addEventListener('input', applyFilters);
   campaignInput?.addEventListener('input', applyFilters);
   statusSelect?.addEventListener('change', applyFilters);
+  sortSelect?.addEventListener('change', applyFilters);
 
   clearBtn?.addEventListener('click', () => {
     if (searchInput) searchInput.value = '';
     if (campaignInput) campaignInput.value = '';
     if (statusSelect) statusSelect.value = '';
+    if (sortSelect) sortSelect.value = 'manual';
 
     window.characterFilters = {
       search: '',
       campaign: '',
-      status: ''
+      status: '',
+      sort: 'manual'
     };
 
     if (typeof renderCharTabs === 'function') renderCharTabs();
@@ -421,8 +814,20 @@ function initUI() {
     });
   });
 
+  const statusEl = document.getElementById('char-status');
+  if (statusEl && statusEl.dataset.archiveLabelBound !== '1') {
+    statusEl.dataset.archiveLabelBound = '1';
+    statusEl.addEventListener('change', () => {
+      updateArchiveButtonLabel();
+      if (typeof renderCharTabs === 'function') renderCharTabs();
+    });
+  }
+
   updateWealthTotal();
   setupBackupButtons();
+  setupArchiveButtonStyles();
+  updateArchiveButtonLabel();
+  setupCharacterFilterSortStyles();
   setupCharacterFilters();
   setupPrintStyles();
   setupAbilityScoreClickFix();
@@ -465,6 +870,9 @@ window.updateWealthTotal = updateWealthTotal;
 window.initUI = initUI;
 window.setupBackupButtons = setupBackupButtons;
 window.setupCharacterFilters = setupCharacterFilters;
+window.setupCharacterFilterSortStyles = setupCharacterFilterSortStyles;
+window.setupArchiveButtonStyles = setupArchiveButtonStyles;
+window.updateArchiveButtonLabel = updateArchiveButtonLabel;
 window.setupPrintStyles = setupPrintStyles;
 window.printCurrentSheet = printCurrentSheet;
 window.createTopActionButton = createTopActionButton;

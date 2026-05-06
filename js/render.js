@@ -160,41 +160,428 @@ function buildSpellSlots() {
   }
 }
 
+// ====================================================================
+// SPELL FILTERS
+// ====================================================================
+window.spellFilters = window.spellFilters || {
+  search: '',
+  level: 'all',
+  prepared: 'all',
+  concentration: false,
+  ritual: false
+};
+
+function setupSpellFiltersStyles() {
+  if (document.getElementById('arcanum-spell-filters-styles')) return;
+
+  const style = document.createElement('style');
+  style.id = 'arcanum-spell-filters-styles';
+  style.textContent = `
+    .spell-filters-bar {
+      background: rgba(255,255,255,0.28);
+      border: 1px solid var(--parchment-darker);
+      border-radius: 6px;
+      padding: 0.75rem;
+      margin-bottom: 1rem;
+      display: grid;
+      grid-template-columns: minmax(160px, 1.4fr) minmax(105px, 0.7fr) minmax(130px, 0.8fr) auto auto auto;
+      gap: 0.55rem;
+      align-items: end;
+    }
+
+    .spell-filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    .spell-filter-group label,
+    .spell-filter-check label {
+      font-family: 'Cinzel', serif;
+      font-size: 0.58rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--blood);
+    }
+
+    .spell-filter-group input,
+    .spell-filter-group select {
+      min-height: 32px;
+      background: rgba(255,255,255,0.35);
+      border: 1px solid var(--parchment-darker);
+      border-radius: 4px;
+      color: var(--ink);
+      font-family: 'Crimson Text', serif;
+      font-size: 0.95rem;
+      padding: 0.3rem 0.5rem;
+      outline: none;
+    }
+
+    .spell-filter-group input:focus,
+    .spell-filter-group select:focus {
+      border-color: var(--gold-dark);
+      box-shadow: 0 0 0 2px rgba(201,162,39,0.12);
+    }
+
+    .spell-filter-check {
+      min-height: 32px;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding-bottom: 0.25rem;
+      white-space: nowrap;
+    }
+
+    .spell-filter-check input {
+      cursor: pointer;
+    }
+
+    .spell-filter-clear {
+      min-height: 32px;
+      background: transparent;
+      border: 1px dashed var(--parchment-darker);
+      color: var(--ink-faded);
+      font-family: 'Cinzel', serif;
+      font-size: 0.68rem;
+      font-weight: 700;
+      border-radius: 4px;
+      padding: 0.35rem 0.7rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .spell-filter-clear:hover {
+      border-color: var(--gold-dark);
+      color: var(--gold-dark);
+      background: rgba(255,255,255,0.25);
+    }
+
+    .spell-filter-results {
+      grid-column: 1 / -1;
+      font-size: 0.8rem;
+      color: var(--ink-faded);
+      font-style: italic;
+    }
+
+    @media (max-width: 960px) {
+      .spell-filters-bar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .spell-filter-results {
+        grid-column: span 2;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .spell-filters-bar {
+        grid-template-columns: 1fr;
+      }
+
+      .spell-filter-results {
+        grid-column: auto;
+      }
+    }
+  `;
+
+  document.head.appendChild(style);
+}
+
+function setupSpellFilters() {
+  setupSpellFiltersStyles();
+
+  const spellList = document.getElementById('spells-by-level');
+  if (!spellList) return;
+
+  let bar = document.getElementById('spell-filters-bar');
+
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'spell-filters-bar';
+    bar.className = 'spell-filters-bar';
+    bar.innerHTML = `
+      <div class="spell-filter-group">
+        <label>Buscar</label>
+        <input id="spell-filter-search" type="search" placeholder="Nome, escola, dano, descrição...">
+      </div>
+
+      <div class="spell-filter-group">
+        <label>Nível</label>
+        <select id="spell-filter-level">
+          <option value="all">Todos</option>
+          <option value="0">Truques</option>
+          <option value="1">Nível 1</option>
+          <option value="2">Nível 2</option>
+          <option value="3">Nível 3</option>
+          <option value="4">Nível 4</option>
+          <option value="5">Nível 5</option>
+          <option value="6">Nível 6</option>
+          <option value="7">Nível 7</option>
+          <option value="8">Nível 8</option>
+          <option value="9">Nível 9</option>
+        </select>
+      </div>
+
+      <div class="spell-filter-group">
+        <label>Preparação</label>
+        <select id="spell-filter-prepared">
+          <option value="all">Todas</option>
+          <option value="prepared">Preparadas</option>
+          <option value="unprepared">Não preparadas</option>
+        </select>
+      </div>
+
+      <div class="spell-filter-check">
+        <input id="spell-filter-concentration" type="checkbox">
+        <label for="spell-filter-concentration">Concentração</label>
+      </div>
+
+      <div class="spell-filter-check">
+        <input id="spell-filter-ritual" type="checkbox">
+        <label for="spell-filter-ritual">Ritual</label>
+      </div>
+
+      <button class="spell-filter-clear" id="spell-filter-clear" type="button">Limpar</button>
+
+      <div class="spell-filter-results" id="spell-filter-results"></div>
+    `;
+
+    spellList.parentNode.insertBefore(bar, spellList);
+  }
+
+  const search = document.getElementById('spell-filter-search');
+  const level = document.getElementById('spell-filter-level');
+  const prepared = document.getElementById('spell-filter-prepared');
+  const concentration = document.getElementById('spell-filter-concentration');
+  const ritual = document.getElementById('spell-filter-ritual');
+  const clear = document.getElementById('spell-filter-clear');
+
+  const syncFromState = () => {
+    if (search) search.value = window.spellFilters.search || '';
+    if (level) level.value = window.spellFilters.level || 'all';
+    if (prepared) prepared.value = window.spellFilters.prepared || 'all';
+    if (concentration) concentration.checked = !!window.spellFilters.concentration;
+    if (ritual) ritual.checked = !!window.spellFilters.ritual;
+  };
+
+  const apply = () => {
+    window.spellFilters = {
+      search: search?.value || '',
+      level: level?.value || 'all',
+      prepared: prepared?.value || 'all',
+      concentration: !!concentration?.checked,
+      ritual: !!ritual?.checked
+    };
+
+    buildSpellsByLevel();
+  };
+
+  if (bar.dataset.bound !== '1') {
+    bar.dataset.bound = '1';
+
+    search?.addEventListener('input', apply);
+    level?.addEventListener('change', apply);
+    prepared?.addEventListener('change', apply);
+    concentration?.addEventListener('change', apply);
+    ritual?.addEventListener('change', apply);
+
+    clear?.addEventListener('click', () => {
+      window.spellFilters = {
+        search: '',
+        level: 'all',
+        prepared: 'all',
+        concentration: false,
+        ritual: false
+      };
+
+      syncFromState();
+      buildSpellsByLevel();
+    });
+  }
+
+  syncFromState();
+}
+
+function getSpellFilterState() {
+  return window.spellFilters || {
+    search: '',
+    level: 'all',
+    prepared: 'all',
+    concentration: false,
+    ritual: false
+  };
+}
+
+function spellMatchesFilters(spell, level) {
+  const filters = getSpellFilterState();
+
+  if (filters.level !== 'all' && String(level) !== String(filters.level)) return false;
+
+  if (filters.prepared === 'prepared' && !spell.prepared) return false;
+  if (filters.prepared === 'unprepared' && spell.prepared) return false;
+
+  if (filters.concentration && !spell.conc) return false;
+  if (filters.ritual && !spell.ritual) return false;
+
+  const search = String(filters.search || '').trim().toLowerCase();
+  if (search) {
+    const searchable = [
+      spell.name,
+      spell.school,
+      spell.castTime,
+      spell.range,
+      spell.duration,
+      spell.damage,
+      spell.components,
+      spell.description
+    ].map(v => String(v || '').toLowerCase()).join(' ');
+
+    if (!searchable.includes(search)) return false;
+  }
+
+  return true;
+}
+
+function updateSpellFilterResults(total, visible) {
+  const el = document.getElementById('spell-filter-results');
+  if (!el) return;
+
+  if (total === 0) {
+    el.textContent = 'Nenhuma magia cadastrada.';
+    return;
+  }
+
+  if (visible === total) {
+    el.textContent = `${total} magia${total === 1 ? '' : 's'} cadastrada${total === 1 ? '' : 's'}.`;
+    return;
+  }
+
+  el.textContent = `Mostrando ${visible} de ${total} magia${total === 1 ? '' : 's'}.`;
+}
+
+function setupSpellCardEditStyles() {
+  if (document.getElementById('arcanum-spell-card-edit-styles')) return;
+
+  const style = document.createElement('style');
+  style.id = 'arcanum-spell-card-edit-styles';
+  style.textContent = `
+    .spell-card-editable {
+      cursor: pointer;
+    }
+
+    .spell-card-editable:hover {
+      background: rgba(255,255,255,0.42);
+    }
+
+    .spell-click-area {
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .spell-card-editable .spell-click-area:hover {
+      text-decoration: underline;
+      text-decoration-thickness: 1px;
+      text-underline-offset: 2px;
+    }
+  `;
+
+  document.head.appendChild(style);
+}
+
+function escapeSpellText(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
 function buildSpellsByLevel() {
+  setupSpellCardEditStyles();
+
   const el = document.getElementById('spells-by-level');
+  if(!el) return;
+
+  setupSpellFilters();
+
   el.innerHTML = '';
+
+  let hasAnySpell = false;
+  let totalSpellCount = 0;
+  let visibleSpellCount = 0;
+
   for(let lvl=0;lvl<=9;lvl++) {
-    const spellList = spells[lvl]||[];
+    const originalSpellList = spells[lvl]||[];
+    totalSpellCount += originalSpellList.length;
+
+    const spellList = originalSpellList
+      .map((spell, originalIndex) => ({ spell, originalIndex }))
+      .filter(({ spell }) => spellMatchesFilters(spell, lvl));
+
+    if(originalSpellList.length > 0) hasAnySpell = true;
     if(spellList.length===0) continue;
+
+    visibleSpellCount += spellList.length;
+
     const section = document.createElement('div');
     section.className = 'spell-level-section';
     section.innerHTML = `<div class="spell-level-header">
       <div class="spell-level-badge">${lvl===0?'Truques':'Nível '+lvl}</div>
     </div>
-    <div style="display:grid;grid-template-columns:30px 1fr 80px 70px 60px 60px 40px;gap:4px;padding:2px 6px;font-family:'Cinzel',serif;font-size:0.6rem;color:var(--blood);letter-spacing:0.08em;border-bottom:1px solid var(--parchment-darker);">
+    <div class="spell-list-header" style="display:grid;grid-template-columns:30px 1fr 80px 70px 60px 60px 40px;gap:4px;padding:2px 6px;font-family:'Cinzel',serif;font-size:0.6rem;color:var(--blood);letter-spacing:0.08em;border-bottom:1px solid var(--parchment-darker);">
       <div>Prep</div><div>Nome</div><div>Tempo</div><div>Alcance</div><div>Duração</div><div>Rolar</div><div></div>
     </div>`;
-    spellList.forEach((sp,idx) => {
+
+    spellList.forEach(({ spell: sp, originalIndex: idx }) => {
       const row = document.createElement('div');
-      row.className = 'spell-card';
+      row.className = 'spell-card spell-card-editable';
       row.style.gridTemplateColumns = '30px 1fr 80px 70px 60px 60px 40px';
+      row.title = 'Clique no card para editar esta magia';
       row.innerHTML = `
-        <div class="spell-prep ${sp.prepared?'prepared':''}" onclick="toggleSpellPrep(${lvl},${idx})" title="Preparada"></div>
-        <div>
-          <div style="font-size:0.88rem;font-weight:600;color:var(--ink);">${sp.name||'Magia sem nome'}</div>
-          <div style="font-size:0.7rem;color:var(--ink-faded);">${sp.conc?'<span class="spell-conc">C</span>':''} ${sp.ritual?'<span class="spell-ritual">R</span>':''} ${sp.school||''}</div>
+        <div class="spell-prep ${sp.prepared?'prepared':''}" onclick="event.stopPropagation(); toggleSpellPrep(${lvl},${idx})" title="Preparada"></div>
+        <div class="spell-click-area" onclick="showSpellEditor(${lvl},${idx})">
+          <div style="font-size:0.88rem;font-weight:600;color:var(--ink);">${escapeSpellText(sp.name||'Magia sem nome')}</div>
+          <div style="font-size:0.7rem;color:var(--ink-faded);">${sp.conc?'<span class="spell-conc">C</span>':''} ${sp.ritual?'<span class="spell-ritual">R</span>':''} ${escapeSpellText(sp.school||'')}</div>
         </div>
-        <div style="font-size:0.78rem;color:var(--ink-faded);">${sp.castTime||'1 Ação'}</div>
-        <div style="font-size:0.78rem;color:var(--ink-faded);">${sp.range||'30ft'}</div>
-        <div style="font-size:0.78rem;color:var(--ink-faded);">${sp.duration||'Instantâneo'}</div>
-        <button class="spell-roll-btn" onclick="rollSpell(${lvl},${idx})">🎲 ${sp.damage||''}</button>
-        <button class="del-btn" onclick="deleteSpell(${lvl},${idx})">✕</button>
+        <div class="spell-click-area" onclick="showSpellEditor(${lvl},${idx})" style="font-size:0.78rem;color:var(--ink-faded);">${escapeSpellText(sp.castTime||'1 Ação')}</div>
+        <div class="spell-click-area" onclick="showSpellEditor(${lvl},${idx})" style="font-size:0.78rem;color:var(--ink-faded);">${escapeSpellText(sp.range||'30ft')}</div>
+        <div class="spell-click-area" onclick="showSpellEditor(${lvl},${idx})" style="font-size:0.78rem;color:var(--ink-faded);">${escapeSpellText(sp.duration||'Instantâneo')}</div>
+        <button class="spell-roll-btn" onclick="event.stopPropagation(); rollSpell(${lvl},${idx})">🎲 ${escapeSpellText(sp.damage||'')}</button>
+        <button class="del-btn" onclick="event.stopPropagation(); deleteSpell(${lvl},${idx})">✕</button>
       `;
+
+      row.addEventListener('dblclick', () => showSpellEditor(lvl, idx));
       section.appendChild(row);
     });
+
     el.appendChild(section);
   }
+
+  updateSpellFilterResults(totalSpellCount, visibleSpellCount);
+
+  if(!hasAnySpell) {
+    el.innerHTML = `
+      <div style="text-align:center;color:var(--ink-faded);font-style:italic;font-size:0.9rem;padding:1rem;">
+        Nenhuma magia adicionada ainda. Use os botões de adicionar magia para começar.
+      </div>
+    `;
+    updateSpellFilterResults(0, 0);
+    return;
+  }
+
+  if(visibleSpellCount === 0) {
+    el.innerHTML = `
+      <div style="text-align:center;color:var(--ink-faded);font-style:italic;font-size:0.9rem;padding:1rem;">
+        Nenhuma magia encontrada com os filtros atuais.
+      </div>
+    `;
+  }
 }
+
 
 function addSpell(level) {
   if(!spells[level]) spells[level]=[];
@@ -203,31 +590,87 @@ function addSpell(level) {
 }
 
 function showSpellEditor(level, idx) {
+  if(!spells[level] || !spells[level][idx]) return;
+
   const sp = spells[level][idx];
   const modal = document.getElementById('new-char-modal');
+  if(!modal) return;
+
   modal.querySelector('.modal-box').innerHTML = `
     <div class="modal-title">✦ ${level===0?'Truque':'Magia Nível '+level}</div>
-    <div class="field-group"><label class="field-label">Nome</label><input class="field-input" id="se-name" value="${sp.name||''}" placeholder="Nome da magia..."></div>
+
+    <div class="field-group">
+      <label class="field-label">Nome</label>
+      <input class="field-input" id="se-name" value="${escapeSpellText(sp.name||'')}" placeholder="Nome da magia...">
+    </div>
+
     <div class="grid-2" style="gap:0.6rem;">
-      <div class="field-group"><label class="field-label">Escola</label><select class="field-select" id="se-school"><option>Abjuração</option><option>Adivinhação</option><option>Conjuração</option><option>Encantamento</option><option>Evocação</option><option>Ilusão</option><option>Necromancia</option><option>Transmutação</option></select></div>
-      <div class="field-group"><label class="field-label">Tempo de Conjuração</label><input class="field-input" id="se-cast" value="${sp.castTime||'1 Ação'}"></div>
-      <div class="field-group"><label class="field-label">Alcance</label><input class="field-input" id="se-range" value="${sp.range||'30ft'}"></div>
-      <div class="field-group"><label class="field-label">Duração</label><input class="field-input" id="se-duration" value="${sp.duration||'Instantâneo'}"></div>
+      <div class="field-group">
+        <label class="field-label">Escola</label>
+        <select class="field-select" id="se-school">
+          <option>Abjuração</option>
+          <option>Adivinhação</option>
+          <option>Conjuração</option>
+          <option>Encantamento</option>
+          <option>Evocação</option>
+          <option>Ilusão</option>
+          <option>Necromancia</option>
+          <option>Transmutação</option>
+        </select>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Tempo de Conjuração</label>
+        <input class="field-input" id="se-cast" value="${escapeSpellText(sp.castTime||'1 Ação')}">
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Alcance</label>
+        <input class="field-input" id="se-range" value="${escapeSpellText(sp.range||'30ft')}">
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Duração</label>
+        <input class="field-input" id="se-duration" value="${escapeSpellText(sp.duration||'Instantâneo')}">
+      </div>
     </div>
-    <div class="field-group"><label class="field-label">Dano/Efeito (ex: 2d6+3 Fogo)</label><input class="field-input" id="se-damage" value="${sp.damage||''}" placeholder="ex: 8d6 Relâmpago"></div>
-    <div class="field-group"><label class="field-label">Componentes</label><input class="field-input" id="se-components" value="${sp.components||''}" placeholder="V, S, M (...)"></div>
+
+    <div class="field-group">
+      <label class="field-label">Dano/Efeito (ex: 2d6+3 Fogo)</label>
+      <input class="field-input" id="se-damage" value="${escapeSpellText(sp.damage||'')}" placeholder="ex: 8d6 Relâmpago">
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">Componentes</label>
+      <input class="field-input" id="se-components" value="${escapeSpellText(sp.components||'')}" placeholder="V, S, M (...)">
+    </div>
+
     <div style="display:flex;gap:1rem;margin:0.5rem 0;">
-      <label style="display:flex;align-items:center;gap:4px;font-family:'Cinzel',serif;font-size:0.75rem;cursor:pointer;"><input type="checkbox" id="se-conc" ${sp.conc?'checked':''}> Concentração</label>
-      <label style="display:flex;align-items:center;gap:4px;font-family:'Cinzel',serif;font-size:0.75rem;cursor:pointer;"><input type="checkbox" id="se-ritual" ${sp.ritual?'checked':''}> Ritual</label>
+      <label style="display:flex;align-items:center;gap:4px;font-family:'Cinzel',serif;font-size:0.75rem;cursor:pointer;">
+        <input type="checkbox" id="se-conc" ${sp.conc?'checked':''}> Concentração
+      </label>
+      <label style="display:flex;align-items:center;gap:4px;font-family:'Cinzel',serif;font-size:0.75rem;cursor:pointer;">
+        <input type="checkbox" id="se-ritual" ${sp.ritual?'checked':''}> Ritual
+      </label>
     </div>
-    <div class="field-group"><label class="field-label">Descrição</label><textarea class="notes-area" id="se-desc" rows="4" placeholder="Efeito da magia...">${sp.description||''}</textarea></div>
+
+    <div class="field-group">
+      <label class="field-label">Descrição</label>
+      <textarea class="notes-area" id="se-desc" rows="4" placeholder="Efeito da magia...">${escapeSpellText(sp.description||'')}</textarea>
+    </div>
+
     <div style="display:flex;gap:0.8rem;margin-top:1rem;">
       <button class="btn-primary" onclick="saveSpellEdit(${level},${idx})">Salvar Magia</button>
       <button class="btn-secondary" onclick="closeModal('new-char-modal')">Cancelar</button>
     </div>
   `;
+
+  const schoolEl = document.getElementById('se-school');
+  if(schoolEl && sp.school) schoolEl.value = sp.school;
+
   modal.classList.add('open');
 }
+
 
 function saveSpellEdit(level, idx) {
   spells[level][idx] = {
@@ -425,3 +868,15 @@ function renderFeatsList() {
     el.appendChild(div);
   });
 }
+
+
+// Exposição explícita para chamadas inline e futuras integrações.
+window.showSpellEditor = showSpellEditor;
+window.saveSpellEdit = saveSpellEdit;
+window.buildSpellsByLevel = buildSpellsByLevel;
+window.setupSpellCardEditStyles = setupSpellCardEditStyles;
+
+window.setupSpellFilters = setupSpellFilters;
+window.getSpellFilterState = getSpellFilterState;
+window.spellMatchesFilters = spellMatchesFilters;
+window.updateSpellFilterResults = updateSpellFilterResults;
