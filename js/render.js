@@ -161,6 +161,169 @@ function buildSpellSlots() {
 }
 
 // ====================================================================
+// SPELL DATABASE LOADER / MODAL
+// ====================================================================
+function loadSpellDatabaseIfNeeded(callback) {
+  if (Array.isArray(window.SPELL_DATABASE)) {
+    callback();
+    return;
+  }
+
+  const existing = document.querySelector('script[data-arcanum-spell-db="1"]');
+  if (existing) {
+    existing.addEventListener('load', callback, { once: true });
+    return;
+  }
+
+  const script = document.createElement('script');
+  script.src = 'js/data/spells.js';
+  script.dataset.arcanumSpellDb = '1';
+  script.onload = callback;
+  script.onerror = () => alert('Não foi possível carregar js/data/spells.js');
+  document.head.appendChild(script);
+}
+
+function normalizeSpellDatabaseEntry(entry) {
+  return {
+    name: entry.namePt || entry.name || 'Magia sem nome',
+    originalName: entry.name || '',
+    school: entry.school || '',
+    castTime: entry.castTime || '1 Ação',
+    range: entry.range || '30 ft',
+    duration: entry.duration || 'Instantaneous',
+    damage: entry.damage || '',
+    components: entry.components || '',
+    conc: !!entry.conc,
+    ritual: !!entry.ritual,
+    description: entry.summary || '',
+    prepared: false,
+    databaseId: entry.id || '',
+    source: 'Spell Database'
+  };
+}
+
+function addSpellFromDatabaseById(id) {
+  loadSpellDatabaseIfNeeded(() => {
+    const db = window.SPELL_DATABASE || [];
+    const entry = db.find(sp => sp.id === id);
+
+    if (!entry) {
+      alert('Magia não encontrada no banco.');
+      return;
+    }
+
+    const level = Number.isInteger(entry.level) ? entry.level : parseInt(entry.level || 0) || 0;
+
+    if (!spells[level]) spells[level] = [];
+    spells[level].push(normalizeSpellDatabaseEntry(entry));
+
+    closeModal('new-char-modal');
+    buildSpellsByLevel();
+    markDirty();
+
+    if (typeof showDriveStatus === 'function') {
+      showDriveStatus('saved', 'Magia adicionada do banco ✓');
+    }
+  });
+}
+
+function showSpellDatabaseModal() {
+  loadSpellDatabaseIfNeeded(() => {
+    const modal = document.getElementById('new-char-modal');
+    if (!modal) return;
+
+    const db = window.SPELL_DATABASE || [];
+
+    modal.querySelector('.modal-box').innerHTML = `
+      <div class="modal-title">✦ Banco de Magias</div>
+
+      <div class="spell-db-controls">
+        <input class="field-input" id="spell-db-search" placeholder="Buscar por nome, classe, escola...">
+
+        <select class="field-select" id="spell-db-level">
+          <option value="all">Todos os níveis</option>
+          <option value="0">Truques</option>
+          <option value="1">Nível 1</option>
+          <option value="2">Nível 2</option>
+          <option value="3">Nível 3</option>
+        </select>
+
+        <select class="field-select" id="spell-db-class">
+          <option value="all">Todas as classes</option>
+          <option value="bard">Bardo</option>
+          <option value="cleric">Clérigo</option>
+          <option value="druid">Druida</option>
+          <option value="paladin">Paladino</option>
+          <option value="ranger">Patrulheiro</option>
+          <option value="sorcerer">Feiticeiro</option>
+          <option value="warlock">Bruxo</option>
+          <option value="wizard">Mago</option>
+        </select>
+      </div>
+
+      <div id="spell-db-results" class="spell-db-results"></div>
+
+      <div style="display:flex;gap:0.8rem;margin-top:1rem;">
+        <button class="btn-secondary" onclick="closeModal('new-char-modal')">Fechar</button>
+      </div>
+    `;
+
+    const renderResults = () => {
+      const search = (document.getElementById('spell-db-search')?.value || '').trim().toLowerCase();
+      const level = document.getElementById('spell-db-level')?.value || 'all';
+      const cls = document.getElementById('spell-db-class')?.value || 'all';
+      const results = document.getElementById('spell-db-results');
+
+      const filtered = db.filter(sp => {
+        if (level !== 'all' && String(sp.level) !== level) return false;
+        if (cls !== 'all' && !(sp.classes || []).includes(cls)) return false;
+
+        if (search) {
+          const haystack = [sp.name, sp.namePt, sp.school, sp.summary, sp.damage, ...(sp.classes || [])]
+            .map(v => String(v || '').toLowerCase())
+            .join(' ');
+
+          if (!haystack.includes(search)) return false;
+        }
+
+        return true;
+      });
+
+      if (!results) return;
+
+      if (filtered.length === 0) {
+        results.innerHTML = '<div style="text-align:center;color:var(--ink-faded);font-style:italic;padding:1rem;">Nenhuma magia encontrada.</div>';
+        return;
+      }
+
+      results.innerHTML = filtered.map(sp => `
+        <div class="spell-db-card">
+          <div>
+            <div class="spell-db-name">${escapeSpellText(sp.namePt || sp.name)}</div>
+            <div class="spell-db-meta">
+              ${sp.level === 0 ? 'Truque' : 'Nível ' + sp.level} • ${escapeSpellText(sp.school || '')}
+              ${sp.conc ? ' • Concentração' : ''}
+              ${sp.ritual ? ' • Ritual' : ''}
+            </div>
+            <div class="spell-db-summary">${escapeSpellText(sp.summary || '')}</div>
+            <div class="spell-db-meta">${escapeSpellText((sp.classes || []).join(', '))}</div>
+          </div>
+
+          <button class="btn-primary spell-db-add-btn" onclick="addSpellFromDatabaseById('${escapeSpellText(sp.id)}')">Adicionar</button>
+        </div>
+      `).join('');
+    };
+
+    document.getElementById('spell-db-search')?.addEventListener('input', renderResults);
+    document.getElementById('spell-db-level')?.addEventListener('change', renderResults);
+    document.getElementById('spell-db-class')?.addEventListener('change', renderResults);
+
+    renderResults();
+    modal.classList.add('open');
+  });
+}
+
+// ====================================================================
 // SPELL FILTERS
 // ====================================================================
 window.spellFilters = window.spellFilters || {
@@ -184,7 +347,7 @@ function setupSpellFiltersStyles() {
       padding: 0.75rem;
       margin-bottom: 1rem;
       display: grid;
-      grid-template-columns: minmax(160px, 1.4fr) minmax(105px, 0.7fr) minmax(130px, 0.8fr) auto auto auto;
+      grid-template-columns: minmax(160px, 1.4fr) minmax(105px, 0.7fr) minmax(130px, 0.8fr) auto auto auto auto;
       gap: 0.55rem;
       align-items: end;
     }
@@ -255,6 +418,68 @@ function setupSpellFiltersStyles() {
       border-color: var(--gold-dark);
       color: var(--gold-dark);
       background: rgba(255,255,255,0.25);
+    }
+
+    .spell-db-controls {
+      display: grid;
+      grid-template-columns: 1fr 140px 160px;
+      gap: 0.55rem;
+      margin-bottom: 0.85rem;
+    }
+
+    .spell-db-results {
+      max-height: 55vh;
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+      padding-right: 0.25rem;
+    }
+
+    .spell-db-card {
+      background: rgba(255,255,255,0.35);
+      border: 1px solid var(--parchment-darker);
+      border-radius: 6px;
+      padding: 0.7rem;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    .spell-db-name {
+      font-family: 'Cinzel', serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .spell-db-meta {
+      font-size: 0.72rem;
+      color: var(--blood);
+      font-family: 'Cinzel', serif;
+      margin-top: 0.15rem;
+    }
+
+    .spell-db-summary {
+      font-size: 0.88rem;
+      color: var(--ink-light);
+      line-height: 1.35;
+      margin-top: 0.35rem;
+    }
+
+    .spell-db-add-btn {
+      white-space: nowrap;
+    }
+
+    @media (max-width: 700px) {
+      .spell-db-controls {
+        grid-template-columns: 1fr;
+      }
+
+      .spell-db-card {
+        grid-template-columns: 1fr;
+      }
     }
 
     .spell-filter-results {
@@ -343,6 +568,7 @@ function setupSpellFilters() {
       </div>
 
       <button class="spell-filter-clear" id="spell-filter-clear" type="button">Limpar</button>
+      <button class="spell-filter-clear" id="spell-db-open" type="button">Banco</button>
 
       <div class="spell-filter-results" id="spell-filter-results"></div>
     `;
@@ -356,6 +582,7 @@ function setupSpellFilters() {
   const concentration = document.getElementById('spell-filter-concentration');
   const ritual = document.getElementById('spell-filter-ritual');
   const clear = document.getElementById('spell-filter-clear');
+  const openDb = document.getElementById('spell-db-open');
 
   const syncFromState = () => {
     if (search) search.value = window.spellFilters.search || '';
@@ -385,6 +612,10 @@ function setupSpellFilters() {
     prepared?.addEventListener('change', apply);
     concentration?.addEventListener('change', apply);
     ritual?.addEventListener('change', apply);
+
+    openDb?.addEventListener('click', () => {
+      showSpellDatabaseModal();
+    });
 
     clear?.addEventListener('click', () => {
       window.spellFilters = {
@@ -812,6 +1043,230 @@ function updateCarryCapacity() {
 // ====================================================================
 // FEATURES
 // ====================================================================
+// ====================================================================
+// FEAT DATABASE LOADER / MODAL
+// ====================================================================
+function loadFeatDatabaseIfNeeded(callback) {
+  if (Array.isArray(window.FEAT_DATABASE)) {
+    callback();
+    return;
+  }
+
+  const existing = document.querySelector('script[data-arcanum-feat-db="1"]');
+  if (existing) {
+    existing.addEventListener('load', callback, { once: true });
+    return;
+  }
+
+  const script = document.createElement('script');
+  script.src = 'js/data/feats.js';
+  script.dataset.arcanumFeatDb = '1';
+  script.onload = callback;
+  script.onerror = () => alert('Não foi possível carregar js/data/feats.js');
+  document.head.appendChild(script);
+}
+
+function normalizeStoredLineBreaks(value) {
+  return String(value || '').replace(/\\n/g, '\n');
+}
+
+function normalizeFeatDatabaseEntry(entry) {
+  const details = [
+    entry.category ? `Categoria: ${entry.category}` : '',
+    entry.prerequisite ? `Pré-requisito: ${entry.prerequisite}` : '',
+    entry.repeatable ? 'Repetível: sim' : 'Repetível: não',
+    entry.tags?.length ? `Tags: ${entry.tags.join(', ')}` : ''
+  ].filter(Boolean).join('\n');
+
+  return {
+    name: entry.namePt || entry.name || 'Talento sem nome',
+    description: `${entry.summary || ''}${details ? '\n\n' + details : ''}`,
+    databaseId: entry.id || '',
+    source: 'Feat Database'
+  };
+}
+
+function addFeatFromDatabaseById(id) {
+  loadFeatDatabaseIfNeeded(() => {
+    const db = window.FEAT_DATABASE || [];
+    const entry = db.find(feat => feat.id === id);
+
+    if (!entry) {
+      alert('Talento não encontrado no banco.');
+      return;
+    }
+
+    feats.push(normalizeFeatDatabaseEntry(entry));
+
+    closeModal('new-char-modal');
+    renderFeatures();
+    markDirty();
+
+    if (typeof showDriveStatus === 'function') {
+      showDriveStatus('saved', 'Talento adicionado do banco ✓');
+    }
+  });
+}
+
+function showFeatDatabaseModal() {
+  loadFeatDatabaseIfNeeded(() => {
+    const modal = document.getElementById('new-char-modal');
+    if (!modal) return;
+
+    const db = window.FEAT_DATABASE || [];
+
+    modal.querySelector('.modal-box').innerHTML = `
+      <div class="modal-title">✦ Banco de Talentos</div>
+
+      <div class="feat-db-controls">
+        <input class="field-input" id="feat-db-search" placeholder="Buscar por nome, categoria, tag...">
+
+        <select class="field-select" id="feat-db-category">
+          <option value="all">Todas as categorias</option>
+          <option value="Origin">Origin</option>
+          <option value="General">General</option>
+          <option value="Fighting Style">Fighting Style</option>
+          <option value="Epic Boon">Epic Boon</option>
+        </select>
+      </div>
+
+      <div id="feat-db-results" class="feat-db-results"></div>
+
+      <div style="display:flex;gap:0.8rem;margin-top:1rem;">
+        <button class="btn-secondary" onclick="closeModal('new-char-modal')">Fechar</button>
+      </div>
+    `;
+
+    const renderResults = () => {
+      const search = (document.getElementById('feat-db-search')?.value || '').trim().toLowerCase();
+      const category = document.getElementById('feat-db-category')?.value || 'all';
+      const results = document.getElementById('feat-db-results');
+
+      const filtered = db.filter(feat => {
+        if (category !== 'all' && feat.category !== category) return false;
+
+        if (search) {
+          const haystack = [
+            feat.name,
+            feat.namePt,
+            feat.category,
+            feat.prerequisite,
+            feat.summary,
+            ...(feat.tags || [])
+          ].map(v => String(v || '').toLowerCase()).join(' ');
+
+          if (!haystack.includes(search)) return false;
+        }
+
+        return true;
+      });
+
+      if (!results) return;
+
+      if (filtered.length === 0) {
+        results.innerHTML = '<div style="text-align:center;color:var(--ink-faded);font-style:italic;padding:1rem;">Nenhum talento encontrado.</div>';
+        return;
+      }
+
+      results.innerHTML = filtered.map(feat => `
+        <div class="feat-db-card">
+          <div>
+            <div class="feat-db-name">${escapeSpellText(feat.namePt || feat.name)}</div>
+            <div class="feat-db-meta">
+              ${escapeSpellText(feat.category || '')}
+              ${feat.prerequisite ? ' • ' + escapeSpellText(feat.prerequisite) : ''}
+              ${feat.repeatable ? ' • Repetível' : ''}
+            </div>
+            <div class="feat-db-summary">${escapeSpellText(feat.summary || '')}</div>
+            <div class="feat-db-meta">${escapeSpellText((feat.tags || []).join(', '))}</div>
+          </div>
+
+          <button class="btn-primary feat-db-add-btn" onclick="addFeatFromDatabaseById('${escapeSpellText(feat.id)}')">Adicionar</button>
+        </div>
+      `).join('');
+    };
+
+    document.getElementById('feat-db-search')?.addEventListener('input', renderResults);
+    document.getElementById('feat-db-category')?.addEventListener('change', renderResults);
+
+    renderResults();
+    modal.classList.add('open');
+  });
+}
+
+function setupFeatDatabaseStyles() {
+  if (document.getElementById('arcanum-feat-db-styles')) return;
+
+  const style = document.createElement('style');
+  style.id = 'arcanum-feat-db-styles';
+  style.textContent = `
+    .feat-db-controls {
+      display: grid;
+      grid-template-columns: 1fr 180px;
+      gap: 0.55rem;
+      margin-bottom: 0.85rem;
+    }
+
+    .feat-db-results {
+      max-height: 55vh;
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+      padding-right: 0.25rem;
+    }
+
+    .feat-db-card {
+      background: rgba(255,255,255,0.35);
+      border: 1px solid var(--parchment-darker);
+      border-radius: 6px;
+      padding: 0.7rem;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    .feat-db-name {
+      font-family: 'Cinzel', serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .feat-db-meta {
+      font-size: 0.72rem;
+      color: var(--blood);
+      font-family: 'Cinzel', serif;
+      margin-top: 0.15rem;
+    }
+
+    .feat-db-summary {
+      font-size: 0.88rem;
+      color: var(--ink-light);
+      line-height: 1.35;
+      margin-top: 0.35rem;
+    }
+
+    .feat-db-add-btn {
+      white-space: nowrap;
+    }
+
+    .feat-bank-btn {
+      margin-left: 0.5rem;
+    }
+
+    @media (max-width: 700px) {
+      .feat-db-controls,
+      .feat-db-card {
+        grid-template-columns: 1fr;
+      }
+    }
+  `;
+
+  document.head.appendChild(style);
+}
+
 function addFeature(type) {
   const arr = type==='class'?classFeatures:type==='race'?raceFeatures:otherFeatures;
   arr.push({name:'Nova Habilidade',source:'',description:''});
@@ -826,10 +1281,35 @@ function addFeat() {
 }
 
 function renderFeatures() {
+  setupFeatDatabaseStyles();
+
   renderFeatureList('class-features-list', classFeatures, 'class');
   renderFeatureList('race-features-list', raceFeatures, 'race');
   renderFeatureList('other-features-list', otherFeatures, 'other');
   renderFeatsList();
+  setupFeatDatabaseButton();
+}
+
+function setupFeatDatabaseButton() {
+  const featsList = document.getElementById('feats-list');
+  if (!featsList) return;
+
+  const panel = featsList.closest('.panel') || featsList.parentElement;
+  if (!panel || panel.querySelector('#feat-db-open')) return;
+
+  const title = panel.querySelector('.panel-title') || panel.firstElementChild;
+  const btn = document.createElement('button');
+  btn.id = 'feat-db-open';
+  btn.type = 'button';
+  btn.className = 'btn-secondary feat-bank-btn';
+  btn.textContent = 'Banco de Talentos';
+  btn.onclick = showFeatDatabaseModal;
+
+  if (title) {
+    title.appendChild(btn);
+  } else {
+    panel.insertBefore(btn, featsList);
+  }
 }
 
 function renderFeatureList(elId, arr, type) {
@@ -845,7 +1325,7 @@ function renderFeatureList(elId, arr, type) {
         <input value="${f.source||''}" onchange="${type}Features[${i}].source=this.value;markDirty();" placeholder="Fonte..." style="width:100px;background:transparent;border:none;border-bottom:1px dashed var(--parchment-darker);font-family:'Crimson Text',serif;font-size:0.75rem;color:var(--blood);outline:none;font-style:italic;">
         <button class="del-btn" onclick="${type}Features.splice(${i},1);renderFeatures();">✕</button>
       </div>
-      <textarea onchange="${type}Features[${i}].description=this.value;markDirty();" style="width:100%;background:transparent;border:none;font-family:'Crimson Text',serif;font-size:0.88rem;color:var(--ink-light);outline:none;resize:vertical;min-height:48px;line-height:1.5;" placeholder="Descrição da habilidade...">${f.description||''}</textarea>
+      <textarea onchange="${type}Features[${i}].description=normalizeStoredLineBreaks(this.value);this.value=${type}Features[${i}].description;markDirty();" style="width:100%;background:transparent;border:none;font-family:'Crimson Text',serif;font-size:0.88rem;color:var(--ink-light);outline:none;resize:vertical;min-height:48px;line-height:1.5;" placeholder="Descrição da habilidade...">${normalizeStoredLineBreaks(f.description)}</textarea>
     `;
     el.appendChild(div);
   });
@@ -863,7 +1343,7 @@ function renderFeatsList() {
         <input value="${f.name||''}" onchange="feats[${i}].name=this.value;markDirty();" style="flex:1;background:transparent;border:none;border-bottom:1px solid var(--parchment-darker);font-family:'Cinzel',serif;font-size:0.88rem;font-weight:600;color:var(--ink);outline:none;">
         <button class="del-btn" onclick="feats.splice(${i},1);renderFeatures();">✕</button>
       </div>
-      <textarea onchange="feats[${i}].description=this.value;markDirty();" style="width:100%;background:transparent;border:none;font-family:'Crimson Text',serif;font-size:0.88rem;color:var(--ink-light);outline:none;resize:vertical;min-height:48px;line-height:1.5;" placeholder="Efeito do talento...">${f.description||''}</textarea>
+      <textarea onchange="feats[${i}].description=normalizeStoredLineBreaks(this.value);this.value=feats[${i}].description;markDirty();" style="width:100%;background:transparent;border:none;font-family:'Crimson Text',serif;font-size:0.88rem;color:var(--ink-light);outline:none;resize:vertical;min-height:72px;line-height:1.5;" placeholder="Efeito do talento...">${normalizeStoredLineBreaks(f.description)}</textarea>
     `;
     el.appendChild(div);
   });
@@ -880,3 +1360,17 @@ window.setupSpellFilters = setupSpellFilters;
 window.getSpellFilterState = getSpellFilterState;
 window.spellMatchesFilters = spellMatchesFilters;
 window.updateSpellFilterResults = updateSpellFilterResults;
+
+window.loadSpellDatabaseIfNeeded = loadSpellDatabaseIfNeeded;
+window.showSpellDatabaseModal = showSpellDatabaseModal;
+window.addSpellFromDatabaseById = addSpellFromDatabaseById;
+window.normalizeSpellDatabaseEntry = normalizeSpellDatabaseEntry;
+
+window.loadFeatDatabaseIfNeeded = loadFeatDatabaseIfNeeded;
+window.showFeatDatabaseModal = showFeatDatabaseModal;
+window.addFeatFromDatabaseById = addFeatFromDatabaseById;
+window.normalizeFeatDatabaseEntry = normalizeFeatDatabaseEntry;
+window.setupFeatDatabaseButton = setupFeatDatabaseButton;
+window.setupFeatDatabaseStyles = setupFeatDatabaseStyles;
+
+window.normalizeStoredLineBreaks = normalizeStoredLineBreaks;
