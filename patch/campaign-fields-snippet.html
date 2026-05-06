@@ -1,0 +1,32 @@
+<!-- ===== CAMPANHA / ORGANIZAÇÃO ===== -->
+<div class="campaign-fields-block">
+  <div class="panel-title">Campanha & Organização</div>
+
+  <div class="grid-2 campaign-grid">
+    <div class="field-group">
+      <label class="field-label">Campanha</label>
+      <input class="field-input" id="char-campaign" placeholder="Nome da campanha..." onchange="markDirty()">
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">Status</label>
+      <select class="field-select" id="char-status" onchange="markDirty()">
+        <option>Ativo</option>
+        <option>Reserva</option>
+        <option>Arquivado</option>
+        <option>Morto</option>
+        <option>NPC</option>
+      </select>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">Mestre</label>
+      <input class="field-input" id="char-dm" placeholder="Nome do mestre..." onchange="markDirty()">
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">Grupo / Mesa</label>
+      <input class="field-input" id="char-party" placeholder="Nome do grupo..." onchange="markDirty()">
+    </div>
+  </div>
+</div>

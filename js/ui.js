@@ -138,7 +138,17 @@ function setupBackupButtons() {
     }
   });
 
-  const actionButtons = [saveBtn, duplicateBtn, deleteBtn, exportBtn, importBtn];
+  const printBtn = createTopActionButton({
+    id: 'print-sheet-btn',
+    icon: '🖨️',
+    label: 'Imprimir',
+    title: 'Imprimir ou salvar a ficha atual em PDF pelo navegador',
+    onClick: () => {
+      if (typeof printCurrentSheet === 'function') printCurrentSheet();
+    }
+  });
+
+  const actionButtons = [saveBtn, duplicateBtn, deleteBtn, exportBtn, importBtn, printBtn];
 
   actionButtons.forEach(btn => {
     if (btn.parentNode !== nav) nav.appendChild(btn);
@@ -152,6 +162,232 @@ function setupBackupButtons() {
     return btn.id !== 'save-btn' && btn.textContent.trim().toLowerCase() === 'drive';
   });
   if (legacyDriveText) legacyDriveText.remove();
+}
+
+// ====================================================================
+// PRINT / PDF
+// ====================================================================
+function setupPrintStyles() {
+  if (document.getElementById('arcanum-print-styles')) return;
+
+  const style = document.createElement('style');
+  style.id = 'arcanum-print-styles';
+  style.textContent = `
+    @media print {
+      @page {
+        size: A4;
+        margin: 12mm;
+      }
+
+      html,
+      body {
+        background: #fff !important;
+        color: #000 !important;
+      }
+
+      body::before,
+      body::after,
+      #title-screen,
+      #top-nav,
+      #section-tabs,
+      #drive-status,
+      #dice-roller-panel,
+      #new-char-modal,
+      #character-filter-bar,
+      .modal-overlay,
+      .top-action-btn,
+      .char-tab,
+      .drive-btn,
+      .add-row-btn,
+      .del-btn,
+      .weapon-roll-btn,
+      .spell-roll-btn,
+      .btn-primary,
+      .btn-secondary {
+        display: none !important;
+      }
+
+      #app {
+        display: block !important;
+      }
+
+      .page {
+        display: none !important;
+        padding: 0 !important;
+        max-width: none !important;
+        margin: 0 !important;
+      }
+
+      .page.active {
+        display: block !important;
+      }
+
+      .parchment,
+      .panel {
+        background: #fff !important;
+        color: #000 !important;
+        border: 1px solid #999 !important;
+        box-shadow: none !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      .parchment::before {
+        display: none !important;
+      }
+
+      .grid-3,
+      .grid-2,
+      .grid-4 {
+        gap: 8px !important;
+      }
+
+      .panel {
+        margin-bottom: 8px !important;
+        padding: 10px !important;
+      }
+
+      .panel-title,
+      .field-label,
+      .combat-stat-label,
+      .passive-label,
+      .ability-label {
+        color: #000 !important;
+      }
+
+      input,
+      select,
+      textarea,
+      .field-input,
+      .field-select,
+      .field-textarea,
+      .notes-area,
+      .trait-text,
+      .item-input {
+        color: #000 !important;
+        background: transparent !important;
+        border-color: #777 !important;
+      }
+
+      .hp-bar-container,
+      .hp-bar,
+      .inspiration-gem,
+      .condition-chip,
+      .skill-prof,
+      .save-prof,
+      .save-dot,
+      .spell-slot,
+      .spell-prep {
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+
+      .portrait-area {
+        max-height: 260px !important;
+        break-inside: avoid;
+      }
+
+      a {
+        color: #000 !important;
+        text-decoration: none !important;
+      }
+    }
+  `;
+
+  document.head.appendChild(style);
+}
+
+function printCurrentSheet() {
+  if (typeof saveLocalNow === 'function') saveLocalNow();
+  else if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
+
+  setupPrintStyles();
+
+  const currentName = document.getElementById('char-name')?.value || 'Ficha';
+  document.title = `Arcanum Codex — ${currentName}`;
+
+  window.print();
+}
+
+// ====================================================================
+// CHARACTER FILTERS
+// ====================================================================
+window.characterFilters = window.characterFilters || {
+  search: '',
+  campaign: '',
+  status: ''
+};
+
+function setupCharacterFilters() {
+  const topNav = document.getElementById('top-nav');
+  if (!topNav) return;
+
+  let bar = document.getElementById('character-filter-bar');
+
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'character-filter-bar';
+    bar.innerHTML = `
+      <div class="filter-group filter-search-group">
+        <label>Buscar</label>
+        <input id="filter-character-search" type="search" placeholder="Nome da ficha...">
+      </div>
+
+      <div class="filter-group">
+        <label>Campanha</label>
+        <input id="filter-character-campaign" type="search" placeholder="Todas">
+      </div>
+
+      <div class="filter-group">
+        <label>Status</label>
+        <select id="filter-character-status">
+          <option value="">Todos</option>
+          <option value="Ativo">Ativo</option>
+          <option value="Reserva">Reserva</option>
+          <option value="Arquivado">Arquivado</option>
+          <option value="Morto">Morto</option>
+          <option value="NPC">NPC</option>
+        </select>
+      </div>
+
+      <button id="clear-character-filters-btn" type="button" title="Limpar filtros">Limpar</button>
+    `;
+
+    topNav.insertAdjacentElement('afterend', bar);
+  }
+
+  const searchInput = document.getElementById('filter-character-search');
+  const campaignInput = document.getElementById('filter-character-campaign');
+  const statusSelect = document.getElementById('filter-character-status');
+  const clearBtn = document.getElementById('clear-character-filters-btn');
+
+  const applyFilters = () => {
+    window.characterFilters = {
+      search: searchInput?.value || '',
+      campaign: campaignInput?.value || '',
+      status: statusSelect?.value || ''
+    };
+
+    if (typeof renderCharTabs === 'function') renderCharTabs();
+  };
+
+  searchInput?.addEventListener('input', applyFilters);
+  campaignInput?.addEventListener('input', applyFilters);
+  statusSelect?.addEventListener('change', applyFilters);
+
+  clearBtn?.addEventListener('click', () => {
+    if (searchInput) searchInput.value = '';
+    if (campaignInput) campaignInput.value = '';
+    if (statusSelect) statusSelect.value = '';
+
+    window.characterFilters = {
+      search: '',
+      campaign: '',
+      status: ''
+    };
+
+    if (typeof renderCharTabs === 'function') renderCharTabs();
+  });
 }
 
 function setupAbilityScoreClickFix() {
@@ -187,6 +423,8 @@ function initUI() {
 
   updateWealthTotal();
   setupBackupButtons();
+  setupCharacterFilters();
+  setupPrintStyles();
   setupAbilityScoreClickFix();
 }
 
@@ -226,5 +464,8 @@ window.handlePortraitUpload = handlePortraitUpload;
 window.updateWealthTotal = updateWealthTotal;
 window.initUI = initUI;
 window.setupBackupButtons = setupBackupButtons;
+window.setupCharacterFilters = setupCharacterFilters;
+window.setupPrintStyles = setupPrintStyles;
+window.printCurrentSheet = printCurrentSheet;
 window.createTopActionButton = createTopActionButton;
 window.setupAbilityScoreClickFix = setupAbilityScoreClickFix;

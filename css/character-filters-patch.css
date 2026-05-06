@@ -1,0 +1,102 @@
+/* =========================================================
+   ETAPA 3C — FILTROS DE PERSONAGEM
+   Cole no FINAL do css/style.css.
+   ========================================================= */
+
+#character-filter-bar {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0.65rem 1.5rem;
+  display: grid;
+  grid-template-columns: minmax(180px, 1.5fr) minmax(160px, 1fr) minmax(130px, 0.7fr) auto;
+  gap: 0.65rem;
+  align-items: end;
+  background: rgba(20, 10, 0, 0.92);
+  border-bottom: 1px solid rgba(201,162,39,0.22);
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.filter-group label {
+  font-family: 'Cinzel', serif;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--gold-dark);
+}
+
+#character-filter-bar input,
+#character-filter-bar select {
+  min-height: 32px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(201,162,39,0.35);
+  border-radius: 4px;
+  color: var(--parchment-dark);
+  font-family: 'Crimson Text', serif;
+  font-size: 0.95rem;
+  padding: 0.3rem 0.55rem;
+  outline: none;
+}
+
+#character-filter-bar input:focus,
+#character-filter-bar select:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px rgba(201,162,39,0.12);
+}
+
+#clear-character-filters-btn {
+  min-height: 32px;
+  background: rgba(201,162,39,0.1);
+  border: 1px solid rgba(201,162,39,0.35);
+  color: var(--gold);
+  border-radius: 4px;
+  font-family: 'Cinzel', serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  padding: 0.35rem 0.8rem;
+  transition: all 0.2s;
+}
+
+#clear-character-filters-btn:hover {
+  background: rgba(201,162,39,0.2);
+  border-color: var(--gold);
+}
+
+.char-tab-empty {
+  opacity: 0.7;
+  cursor: default;
+  border-style: dashed;
+}
+
+.char-tab-empty:hover {
+  background: transparent;
+  color: var(--parchment-dark);
+}
+
+@media (max-width: 900px) {
+  #character-filter-bar {
+    grid-template-columns: 1fr 1fr;
+    padding: 0.65rem 0.75rem;
+  }
+
+  #clear-character-filters-btn {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 560px) {
+  #character-filter-bar {
+    grid-template-columns: 1fr;
+  }
+
+  #clear-character-filters-btn {
+    grid-column: auto;
+  }
+}

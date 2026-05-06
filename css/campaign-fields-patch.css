@@ -1,0 +1,24 @@
+/* =========================================================
+   ETAPA 3A — CAMPANHA E STATUS DA FICHA
+   Cole no FINAL do css/style.css.
+   ========================================================= */
+
+.campaign-fields-block {
+  margin-top: 1rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--parchment-darker);
+}
+
+.campaign-grid {
+  gap: 0.6rem;
+}
+
+#char-status {
+  font-weight: 600;
+}
+
+@media (max-width: 700px) {
+  .campaign-grid {
+    grid-template-columns: 1fr;
+  }
+}

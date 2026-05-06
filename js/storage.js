@@ -52,13 +52,60 @@ function confirmNewChar() {
   saveToLocalStorage();
 }
 
+function getCharacterFilterState() {
+  return window.characterFilters || {
+    search: '',
+    campaign: '',
+    status: ''
+  };
+}
+
+function characterMatchesFilters(char, index) {
+  const filters = getCharacterFilterState();
+  const data = char?.data || {};
+
+  const name = getCharacterDisplayName(char, index).toLowerCase();
+  const campaign = String(data['char-campaign'] || '').toLowerCase();
+  const status = String(data['char-status'] || '').toLowerCase();
+
+  const searchFilter = String(filters.search || '').trim().toLowerCase();
+  const campaignFilter = String(filters.campaign || '').trim().toLowerCase();
+  const statusFilter = String(filters.status || '').trim().toLowerCase();
+
+  if (searchFilter && !name.includes(searchFilter)) return false;
+  if (campaignFilter && !campaign.includes(campaignFilter)) return false;
+  if (statusFilter && status !== statusFilter) return false;
+
+  return true;
+}
+
 function renderCharTabs() {
   const el=document.getElementById('char-tabs');
+  if(!el) return;
+
   el.innerHTML='';
-  characters.forEach((c,i)=>{
+
+  const visibleCharacters = characters
+    .map((char, index) => ({ char, index }))
+    .filter(({ char, index }) => characterMatchesFilters(char, index));
+
+  if (visibleCharacters.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'char-tab char-tab-empty';
+    empty.textContent = 'Nenhuma ficha encontrada';
+    empty.title = 'Limpe os filtros para ver todas as fichas';
+    el.appendChild(empty);
+    return;
+  }
+
+  visibleCharacters.forEach(({ char: c, index: i })=>{
     const btn=document.createElement('button');
     btn.className='char-tab'+(i===currentCharIndex?' active':'');
-    btn.textContent=c.name||`Personagem ${i+1}`;
+    btn.textContent=getCharacterDisplayName(c, i);
+    btn.title = [
+      c?.data?.['char-campaign'] ? `Campanha: ${c.data['char-campaign']}` : '',
+      c?.data?.['char-status'] ? `Status: ${c.data['char-status']}` : ''
+    ].filter(Boolean).join(' • ');
     btn.onclick=()=>switchChar(i);
     el.appendChild(btn);
   });
@@ -99,8 +146,8 @@ function duplicateCurrentCharacter() {
 
 function clearSheet() {
   // Reset all inputs to default
-  ['char-name','char-xp','senses-notes','profs-notes','armor-name','resistances-notes','combat-notes','magic-items-notes','treasure-notes','spell-class-name','spell-notes','personality-traits','ideals','bonds','flaws','char-backstory','adventure-log','connections-notes','goals-notes','misc-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  ['char-class','char-subclass','char-race','char-subrace','char-alignment','char-background','shield-equip'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['char-name','char-campaign','char-dm','char-party','char-xp','senses-notes','profs-notes','armor-name','resistances-notes','combat-notes','magic-items-notes','treasure-notes','spell-class-name','spell-notes','personality-traits','ideals','bonds','flaws','char-backstory','adventure-log','connections-notes','goals-notes','misc-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['char-class','char-subclass','char-race','char-subrace','char-status','char-alignment','char-background','shield-equip'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   ['str-score','dex-score','con-score','int-score','wis-score','cha-score'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=10;});
   document.getElementById('char-level').value=1;
   document.getElementById('hp-current').value=10;
@@ -120,7 +167,7 @@ function clearSheet() {
 // ====================================================================
 function collectData() {
   const data={};
-  ['char-name','char-class','char-subclass','char-race','char-subrace','char-level','char-alignment','char-background','char-xp','str-score','dex-score','con-score','int-score','wis-score','cha-score','hp-current','hp-max','hp-temp','char-ac','char-speed','hit-dice-total','hit-dice-type','hit-dice-used','spell-ability','spell-class-name','armor-name','shield-equip','senses-notes','profs-notes','resistances-notes','combat-notes','magic-items-notes','treasure-notes','spell-notes','spell-notes','personality-traits','ideals','bonds','flaws','char-backstory','adventure-log','connections-notes','goals-notes','misc-notes','char-age','char-height','char-weight','char-eyes','char-hair','char-skin','char-marks','allies-notes','faith-notes','char-deity','attune-1','attune-2','attune-3','coin-cp','coin-sp','coin-ep','coin-gp','coin-pp','spells-prepared-current','spells-prepared-max'].forEach(id=>{const el=document.getElementById(id);if(el)data[id]=el.value;});
+  ['char-name','char-campaign','char-dm','char-party','char-status','char-class','char-subclass','char-race','char-subrace','char-level','char-alignment','char-background','char-xp','str-score','dex-score','con-score','int-score','wis-score','cha-score','hp-current','hp-max','hp-temp','char-ac','char-speed','hit-dice-total','hit-dice-type','hit-dice-used','spell-ability','spell-class-name','armor-name','shield-equip','senses-notes','profs-notes','resistances-notes','combat-notes','magic-items-notes','treasure-notes','spell-notes','spell-notes','personality-traits','ideals','bonds','flaws','char-backstory','adventure-log','connections-notes','goals-notes','misc-notes','char-age','char-height','char-weight','char-eyes','char-hair','char-skin','char-marks','allies-notes','faith-notes','char-deity','attune-1','attune-2','attune-3','coin-cp','coin-sp','coin-ep','coin-gp','coin-pp','spells-prepared-current','spells-prepared-max'].forEach(id=>{const el=document.getElementById(id);if(el)data[id]=el.value;});
   data.skillProfs=skillProfs; data.saveProfs=saveProfs; data.spells=spells; data.weapons=weapons; data.items=items;
   data.classFeatures=classFeatures; data.raceFeatures=raceFeatures; data.otherFeatures=otherFeatures; data.feats=feats;
   data.spellSlots=spellSlots; data.deathSuccesses=deathSuccesses; data.deathFailures=deathFailures;
@@ -334,6 +381,10 @@ function createBlankCharacter() {
     name,
     data: {
       'char-name': name,
+      'char-campaign': '',
+      'char-dm': '',
+      'char-party': '',
+      'char-status': 'Ativo',
       'char-level': '1',
       'str-score': '10',
       'dex-score': '10',
@@ -434,6 +485,20 @@ function deleteCurrentCharacter() {
     clearTimeout(saveTimeout);
     saveTimeout = null;
   }
+}
+
+function exportAllCharactersToJSON() {
+  saveCurrentChar();
+
+  if (!Array.isArray(characters) || characters.length === 0) {
+    showDriveStatus('error', 'Nenhum personagem para exportar');
+    return;
+  }
+
+  const payload = createJSONBackupPayload(characters, 'all');
+  downloadJSONPayload(payload, getBackupFileName('all'));
+
+  showDriveStatus('saved', 'Todos os personagens exportados ✓');
 }
 
 function exportCurrentCharacterToJSON() {
@@ -724,3 +789,6 @@ function showDriveStatus(type, msg) {
 window.deleteCurrentCharacter = deleteCurrentCharacter;
 window.getCurrentCharacterIndexSafe = getCurrentCharacterIndexSafe;
 window.createBlankCharacter = createBlankCharacter;
+
+window.characterMatchesFilters = characterMatchesFilters;
+window.getCharacterFilterState = getCharacterFilterState;
